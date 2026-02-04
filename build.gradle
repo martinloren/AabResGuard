@@ -4,6 +4,8 @@ buildscript {
     apply from: rootProject.file("gradle/config.gradle")
     repositories {
         google()
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+        maven { url 'https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo' }
         if ("true".equalsIgnoreCase(System.getProperty('useLocalMaven', "false"))) {
             println "Using local repo."
             mavenLocal()
@@ -32,6 +34,8 @@ buildscript {
 allprojects {
     repositories {
         google()
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+        maven { url 'https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo' }
         if ("true".equalsIgnoreCase(System.getProperty('useLocalMaven', "false"))) {
             mavenLocal()
         } else {
