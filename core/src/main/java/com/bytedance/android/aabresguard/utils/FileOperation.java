@@ -131,15 +131,10 @@ public class FileOperation {
     }
 
     public static long getZipPathFileSize(ZipFile zipFile, ZipEntry zipEntry) {
-        long size = 0;
-        try {
-            InputStream is = BufferedIo.inputStream(zipFile, zipEntry);
-            size = is.available();
-            is.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (zipEntry == null) {
+            return 0;
         }
-        return size;
+        return zipEntry.getSize();
     }
 
     public static void copyFileUsingStream(File source, File dest) throws IOException {

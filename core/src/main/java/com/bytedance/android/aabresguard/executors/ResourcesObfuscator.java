@@ -4,7 +4,6 @@ import com.android.aapt.Resources;
 import com.android.tools.build.bundletool.model.AppBundle;
 import com.android.tools.build.bundletool.model.BundleModule;
 import com.android.tools.build.bundletool.model.BundleModuleName;
-import com.android.tools.build.bundletool.model.InMemoryModuleEntry;
 import com.android.tools.build.bundletool.model.ModuleEntry;
 import com.android.tools.build.bundletool.model.ResourceTableEntry;
 import com.android.tools.build.bundletool.model.ZipPath;
@@ -19,6 +18,7 @@ import com.bytedance.android.aabresguard.utils.FileOperation;
 import com.bytedance.android.aabresguard.utils.TimeClock;
 import com.bytedance.android.aabresguard.utils.Utils;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.ByteSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -275,7 +275,10 @@ public class ResourcesObfuscator {
             String bundleRawPath = bundleModule.getName().getName() + "/" + entry.getPath().toString();
             String obfuscatedPath = obfuscatedEntryMap.get(bundleRawPath);
             if (obfuscatedPath != null) {
-                ModuleEntry obfuscatedEntry = InMemoryModuleEntry.ofFile(obfuscatedPath, AppBundleUtils.readByte(bundleZipFile, entry, bundleModule));
+                ModuleEntry obfuscatedEntry = ModuleEntry.builder()
+                        .setPath(ZipPath.create(obfuscatedPath))
+                        .setContent(ByteSource.wrap(AppBundleUtils.readByte(bundleZipFile, entry, bundleModule)))
+                        .build();
                 obfuscateEntries.add(obfuscatedEntry);
             } else {
                 obfuscateEntries.add(entry);

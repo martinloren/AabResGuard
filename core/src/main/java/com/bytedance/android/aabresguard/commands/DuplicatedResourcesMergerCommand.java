@@ -192,15 +192,15 @@ public abstract class DuplicatedResourcesMergerCommand {
 
             if (!command.getBundlePath().toFile().getName().endsWith(".aab")) {
                 throw CommandExecutionException.builder()
-                        .withMessage("Wrong properties: %s must end with '.aab'.",
-                                BUNDLE_LOCATION_FLAG)
+                        .withInternalMessage(String.format("Wrong properties: %s must end with '.aab'.",
+                                BUNDLE_LOCATION_FLAG))
                         .build();
             }
 
             if (!command.getOutputPath().toFile().getName().endsWith(".aab")) {
                 throw CommandExecutionException.builder()
-                        .withMessage("Wrong properties: %s must end with '.aab'.",
-                                OUTPUT_FILE_FLAG)
+                        .withInternalMessage(String.format("Wrong properties: %s must end with '.aab'.",
+                                OUTPUT_FILE_FLAG))
                         .build();
             }
 

@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.rmi.UnexpectedException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +26,6 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.ZipFile;
 
 import static com.android.tools.build.bundletool.model.AppBundle.METADATA_DIRECTORY;
@@ -152,12 +150,9 @@ public class BundleFileFilter {
      */
     private BundleMetadata filterMetaData() {
         BundleMetadata.Builder builder = BundleMetadata.builder();
-        Stream.of(rawAppBundle.getBundleMetadata())
-                .map(BundleMetadata::getFileDataMap)
-                .map(ImmutableMap::entrySet)
-                .flatMap(Collection::stream)
+        rawAppBundle.getBundleMetadata().getFileContentMap().entrySet().stream()
                 .filter(entry -> {
-                    ZipPath entryZipPath = ZipPath.create(AppBundle.METADATA_DIRECTORY + "/" + entry.getKey());
+                    ZipPath entryZipPath = AppBundle.METADATA_DIRECTORY.resolve(entry.getKey());
                     if (getMatchedFilterRule(entryZipPath) != null) {
                         System.out.println(String.format("[filter] metadata file is filtered, path: %s", entryZipPath));
                         filterTotalCount += 1;

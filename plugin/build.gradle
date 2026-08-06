@@ -7,14 +7,19 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation gradleApi()
     implementation localGroovy()
-    compileOnly deps.gradle.agp
+    compileOnly "com.android.tools.build:gradle:9.0.1"
 
     implementation deps.kotlin.stdlib
     implementation deps.kotlin.plugin
-    compileOnly deps.aabresguard.core
-    api(deps.aabresguard.core) {
-        exclude group: "com.google.guava", module: "guava"
-        exclude group: "com.android.tools.build", module: "gradle"
+    
+    if ("true".equalsIgnoreCase(System.getProperty("useSource", "false"))) {
+        implementation project(":core")
+    } else {
+        compileOnly deps.aabresguard.core
+        api(deps.aabresguard.core) {
+            exclude group: "com.google.guava", module: "guava"
+            exclude group: "com.android.tools.build", module: "gradle"
+        }
     }
 }
 
@@ -22,5 +27,7 @@ configurations {
     all*.exclude group: "com.android.tools.build", module: "bundletool"
 }
 
-sourceCompatibility = versions.java
-targetCompatibility = versions.java
+java {
+    sourceCompatibility = versions.java
+    targetCompatibility = versions.java
+}

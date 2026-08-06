@@ -122,7 +122,7 @@ public abstract class StringFilterCommand {
         StringFilterConfig config = parser.parse();
         if (!config.isActive()) {
             throw CommandExecutionException.builder()
-                    .withMessage("parser attribute filter#isactive can not be 'false' in %s command",
+                    .withInternalMessage("parser attribute filter#isactive can not be 'false' in %s command",
                             COMMAND_NAME)
                     .build();
         }
@@ -196,19 +196,19 @@ public abstract class StringFilterCommand {
             checkFileDoesNotExist(command.getOutputPath());
             if (!command.getBundlePath().toFile().getName().endsWith(".aab")) {
                 throw CommandExecutionException.builder()
-                        .withMessage("Wrong properties: %s must end with '.aab'.",
+                        .withInternalMessage("Wrong properties: %s must end with '.aab'.",
                                 BUNDLE_LOCATION_FLAG)
                         .build();
             }
             if (!command.getOutputPath().toFile().getName().endsWith(".aab")) {
                 throw CommandExecutionException.builder()
-                        .withMessage("Wrong properties: %s must end with '.aab'.",
+                        .withInternalMessage("Wrong properties: %s must end with '.aab'.",
                                 OUTPUT_FLAG)
                         .build();
             }
             if (!command.getConfigPath().toFile().getName().endsWith(".xml")) {
                 throw CommandExecutionException.builder()
-                        .withMessage("Wrong properties: %s must end with '.xml'.",
+                        .withInternalMessage("Wrong properties: %s must end with '.xml'.",
                                 CONFIG_LOCATION_FLAG)
                         .build();
             }

@@ -1,6 +1,7 @@
 apply plugin: 'com.android.dynamic-feature'
 
 android {
+    namespace "com.bytedance.android.df.module2"
     compileSdkVersion versions.compileSdkVersion
 
     defaultConfig {
@@ -20,12 +21,12 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation deps.appcompatV7
+    implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation project(":app")
 
-    implementation 'com.mikepenz:weather-icons-typeface:2.0.10.5-kotlin@aar'
-    implementation 'com.mikepenz:typeicons-typeface:2.0.7.5-kotlin@aar'
-    implementation 'com.mikepenz:entypo-typeface:1.0.0.5-kotlin@aar'
-    implementation 'com.mikepenz:devicon-typeface:2.0.0.5-kotlin@aar'
-    implementation 'com.mikepenz:foundation-icons-typeface:3.0.0.5-kotlin@aar'
+    implementation 'com.mikepenz:weather-icons-typeface:2.0.10.5@aar'
+    implementation 'com.mikepenz:typeicons-typeface:2.0.7.5@aar'
+    implementation 'com.mikepenz:entypo-typeface:5.1.0@aar'
+    implementation 'com.mikepenz:devicon-typeface:5.1.0@aar'
+    implementation 'com.mikepenz:foundation-icons-typeface:3.0.0.5@aar'
 }

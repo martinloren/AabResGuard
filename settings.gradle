@@ -1,3 +1,6 @@
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
 include ':core', ':plugin', ':app', ':df_module1', ':df_module2'
 
 settings.project(":app").projectDir = file("$rootDir/samples/app")

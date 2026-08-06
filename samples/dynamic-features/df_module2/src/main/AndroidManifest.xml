@@ -1,10 +1,14 @@
-<manifest xmlns:dist="http://schemas.android.com/apk/distribution"
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:dist="http://schemas.android.com/apk/distribution"
     package="com.bytedance.android.df.module2">
 
     <dist:module
         dist:instant="false"
         dist:onDemand="false"
-        dist:title="df_module2">
+        dist:title="@string/title_df_module2">
         <dist:fusing dist:include="true" />
     </dist:module>
+
+    <application />
 </manifest>

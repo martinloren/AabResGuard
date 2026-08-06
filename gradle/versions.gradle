@@ -1,35 +1,30 @@
 def versions = [:]
-versions.agp = "4.2.0"
-versions.kotlin = "1.3.61"
-versions.java = "8"
-versions.aabresguard = "0.1.10"
+versions.kotlin = "1.9.22"
+versions.java = "21"
+versions.aabresguard = "0.1.2026"
 // android
-versions.compileSdkVersion = 30//28
-versions.minSdkVersion = 15
-versions.targetSdkVersion = 30//28
+versions.compileSdkVersion = 34
+versions.minSdkVersion = 21
+versions.targetSdkVersion = 34
 versions.support = "28.0.0"
 
-versions.bundletool = "0.12.0"
+//versions.bundletool = "1.18.3"
 
 versions["aabresguard-core"] = versions.aabresguard
 versions["aabresguard-plugin"] = versions.aabresguard
 
 // plugin
-versions["bintray-plugin"] = "1.8.4"
-versions.shadow = "4.0.4"
+versions["bintray-plugin"] = "1.8.5"
+versions.shadow = "8.1.1"
 versions.digital = "3.4.0"
 
 ext.versions = versions
 
 ext.deps = [:]
 
-// gradle
-def gradle = [:]
-gradle.agp = "com.android.tools.build:gradle:${versions.agp}"
-deps.gradle = gradle
 // kotlin
 def kotlin = [:]
-kotlin.stdlib = "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$versions.kotlin"
+kotlin.stdlib = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$versions.kotlin"
 kotlin.plugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$versions.kotlin"
 kotlin.allopen = "org.jetbrains.kotlin:kotlin-allopen:$versions.kotlin"
 kotlin.embeddable = "org.jetbrains.kotlin:kotlin-compiler-embeddable:$versions.kotlin"
@@ -37,12 +32,14 @@ deps.kotlin = kotlin
 // plugin
 def plugin = [:]
 plugin.digital = "digital.wup:android-maven-publish:${versions.digital}"
-plugin.shadow = "com.github.jengelman.gradle.plugins:shadow:${versions.shadow}"
+plugin.shadow = "com.github.johnrengelman:shadow:${versions.shadow}"
 plugin['bintray-plugin'] = "com.jfrog.bintray.gradle:gradle-bintray-plugin:${versions["bintray-plugin"]}"
 deps.plugin = plugin
 // library
 deps.appcompatV7 = "com.android.support:appcompat-v7:${versions.support}"
-deps.bundletool = "com.android.tools.build:bundletool:${versions.bundletool}"
+
+//deps.bundletool = "com.android.tools.build:bundletool:1.18.3"
+//deps.bundletool = "com.android.tools.build:bundletool:${versions.bundletool}"
 // aabresguard
 def aabresguard = [:]
 aabresguard.core = "$GROUP_ID:aabresguard-core:${versions["aabresguard"]}"

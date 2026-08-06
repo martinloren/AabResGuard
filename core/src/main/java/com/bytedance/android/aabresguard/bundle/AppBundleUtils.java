@@ -4,11 +4,11 @@ import com.android.tools.build.bundletool.model.BundleModule;
 import com.android.tools.build.bundletool.model.ModuleEntry;
 import com.android.tools.build.bundletool.model.ResourceTableEntry;
 import com.android.tools.build.bundletool.model.ZipPath;
-import com.android.tools.build.bundletool.model.utils.files.BufferedIo;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.ZipEntry;
@@ -39,7 +39,7 @@ public class AppBundleUtils {
         String path = String.format("%s/%s", bundleModule.getName().getName(), entry.getPath().toString());
         ZipEntry bundleConfigEntry = bundleZipFile.getEntry(path);
         try {
-            InputStream is = BufferedIo.inputStream(bundleZipFile, bundleConfigEntry);
+            InputStream is = new BufferedInputStream(bundleZipFile.getInputStream(bundleConfigEntry));
             String md5 = bytesToHexString(DigestUtils.md5(is));
             is.close();
             return md5;
@@ -51,7 +51,7 @@ public class AppBundleUtils {
     public static byte[] readByte(ZipFile bundleZipFile, ModuleEntry entry, BundleModule bundleModule) throws IOException {
         String path = String.format("%s/%s", bundleModule.getName().getName(), entry.getPath().toString());
         ZipEntry bundleConfigEntry = bundleZipFile.getEntry(path);
-        InputStream is = BufferedIo.inputStream(bundleZipFile, bundleConfigEntry);
+        InputStream is = new BufferedInputStream(bundleZipFile.getInputStream(bundleConfigEntry));
         byte[] bytes = IOUtils.toByteArray(is);
         is.close();
         return bytes;

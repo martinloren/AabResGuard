@@ -1,7 +1,7 @@
 package com.bytedance.android.plugin.internal
 
 import com.android.build.gradle.api.ApplicationVariant
-import com.android.build.gradle.internal.scope.VariantScope
+//import com.android.build.gradle.internal.scope.VariantScope
 import org.gradle.api.Project
 import java.io.File
 import java.nio.file.Path

@@ -19,10 +19,18 @@ class AabResGuardPlugin : Plugin<Project> {
         checkApplicationPlugin(project)
         project.extensions.create("aabResGuard", AabResGuardExtension::class.java)
 
-        val android = project.extensions.getByName("android") as AppExtension
+        // Use a more flexible way to get the extension to avoid casting issues in AGP 8.0+
+        val android = project.extensions.findByName("android")
+        if (android == null) {
+            return
+        }
+
         project.afterEvaluate {
-            android.applicationVariants.all { variant ->
-                createAabResGuardTask(project, variant)
+            // Fallback to old API for now but using reflection or safe casting
+            if (android is AppExtension) {
+                android.applicationVariants.all { variant ->
+                    createAabResGuardTask(project, variant)
+                }
             }
         }
     }

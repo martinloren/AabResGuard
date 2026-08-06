@@ -1,10 +1,13 @@
 apply plugin: 'com.android.application'
 apply from: "$rootDir/gradle/aabresguard.gradle"
+//apply plugin: 'org.jetbrains.kotlin.android'
 
 android {
-    compileSdkVersion versions.compileSdkVersion
+    namespace "com.bytedance.android.app"
+    compileSdk = 36
 
     defaultConfig {
+        applicationId "com.bytedance.android.app"
         minSdkVersion versions.minSdkVersion
         targetSdkVersion versions.targetSdkVersion
         versionCode 1
@@ -35,14 +38,18 @@ android {
         }
     }
     dynamicFeatures = [":df_module1", ":df_module2"]
+//    kotlinOptions {
+//        jvmTarget = '11'
+ //   }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation deps.appcompatV7
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation "androidx.startup:startup-runtime:1.2.0"
 
-    implementation 'com.mikepenz:ionicons-typeface:2.0.1.5-kotlin@aar'
-    implementation 'com.mikepenz:pixeden-7-stroke-typeface:1.2.0.3-kotlin@aar'
+    implementation 'com.mikepenz:ionicons-typeface:2.0.1.5@aar'
+    implementation 'com.mikepenz:pixeden-7-stroke-typeface:1.2.0.3@aar'
     implementation 'com.mikepenz:material-design-icons-dx-typeface:5.0.1.0-kotlin@aar'
-    compileOnly deps.plugin['bintray-plugin']
+    implementation 'androidx.core:core-ktx:1.17.0'
 }
