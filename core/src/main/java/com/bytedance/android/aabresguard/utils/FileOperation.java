@@ -47,42 +47,36 @@ public class FileOperation {
     public static void uncompress(Path uncompressedFile, Path targetDir) throws IOException {
         checkFileExistsAndReadable(uncompressedFile);
         if (Files.exists(targetDir)) {
-            targetDir.toFile().delete();
-        } else {
-            FileUtils.createDirectories(targetDir);
+            deleteDir(targetDir.toFile());
         }
-        ZipFile zipFile = new ZipFile(uncompressedFile.toFile());
-        Enumeration emu = zipFile.entries();
-        try {
-            while (emu.hasMoreElements()) {
-                ZipEntry entry = (ZipEntry) emu.nextElement();
+        FileUtils.createDirectories(targetDir);
+        String targetDirPath = targetDir.toFile().getCanonicalPath() + File.separator;
+        try (ZipFile zipFile = new ZipFile(uncompressedFile.toFile())) {
+            Enumeration<? extends ZipEntry> entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                File file = new File(targetDir.toFile(), entry.getName());
+                // Reject entries escaping the target dir (zip-slip).
+                if (!file.getCanonicalPath().startsWith(targetDirPath)) {
+                    throw new IOException("Entry is outside of the target dir: " + entry.getName());
+                }
                 if (entry.isDirectory()) {
-                    FileUtils.createDirectories(new File(targetDir.toFile(), entry.getName()).toPath());
+                    FileUtils.createDirectories(file.toPath());
                     continue;
                 }
-                BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
-
-                File file = new File(targetDir.toFile() + File.separator + entry.getName());
-
                 File parent = file.getParentFile();
                 if (parent != null && (!parent.exists())) {
                     FileUtils.createDirectories(parent.toPath());
                 }
-
-                FileOutputStream fos = new FileOutputStream(file);
-                BufferedOutputStream bos = new BufferedOutputStream(fos, BUFFER);
-
-                byte[] buf = new byte[BUFFER];
-                int len;
-                while ((len = bis.read(buf, 0, BUFFER)) != -1) {
-                    fos.write(buf, 0, len);
+                try (InputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
+                     BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file), BUFFER)) {
+                    byte[] buf = new byte[BUFFER];
+                    int len;
+                    while ((len = bis.read(buf, 0, BUFFER)) != -1) {
+                        bos.write(buf, 0, len);
+                    }
                 }
-                bos.flush();
-                bos.close();
-                bis.close();
             }
-        } finally {
-            zipFile.close();
         }
     }
 
@@ -109,25 +103,10 @@ public class FileOperation {
     }
 
     public static long getFileSizes(File f) {
-        long size = 0;
         if (f.exists() && f.isFile()) {
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(f);
-                size = fis.available();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                try {
-                    if (fis != null) {
-                        fis.close();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            return f.length();
         }
-        return size;
+        return 0;
     }
 
     public static long getZipPathFileSize(ZipFile zipFile, ZipEntry zipEntry) {

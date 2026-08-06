@@ -2,10 +2,10 @@ package com.bytedance.android.aabresguard.obfuscation;
 
 import com.bytedance.android.aabresguard.utils.Utils;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  */
 public class ResGuardStringBuilder {
 
-    private final List<String> mReplaceStringBuffer;
+    private final Deque<String> mReplaceStringBuffer;
     private final Set<Integer> mIsReplaced;
     private final Set<Integer> mIsWhiteList;
     private String[] mAToZ = {
@@ -41,7 +41,7 @@ public class ResGuardStringBuilder {
         mFileNameBlackList.add("prn");
         mFileNameBlackList.add("aux");
         mFileNameBlackList.add("nul");
-        mReplaceStringBuffer = new ArrayList<>();
+        mReplaceStringBuffer = new ArrayDeque<>();
         mIsReplaced = new HashSet<>();
         mIsWhiteList = new HashSet<>();
     }
@@ -105,15 +105,18 @@ public class ResGuardStringBuilder {
             throw new IllegalArgumentException("now can only obfuscation less than 35594 in a single type\n");
         }
         if (names != null) {
-            for (int i = 0; i < mReplaceStringBuffer.size(); i++) {
-                String name = mReplaceStringBuffer.get(i);
+            int bufferSize = mReplaceStringBuffer.size();
+            for (int i = 0; i < bufferSize; i++) {
+                String name = mReplaceStringBuffer.poll();
                 if (names.contains(name)) {
+                    // keep it for later use, just skip this round
+                    mReplaceStringBuffer.add(name);
                     continue;
                 }
-                return mReplaceStringBuffer.remove(i);
+                return name;
             }
         }
-        return mReplaceStringBuffer.remove(0);
+        return mReplaceStringBuffer.poll();
     }
 
     public String getReplaceString() {

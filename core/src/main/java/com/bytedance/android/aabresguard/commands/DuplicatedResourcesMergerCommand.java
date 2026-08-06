@@ -120,22 +120,26 @@ public abstract class DuplicatedResourcesMergerCommand {
     public Path execute() throws IOException, InterruptedException {
         TimeClock timeClock = new TimeClock();
 
-        AppBundle appBundle = new AppBundleAnalyzer(getBundlePath()).analyze();
-        // merge duplicated resources file
-        DuplicatedResourcesMerger merger = new DuplicatedResourcesMerger(getBundlePath(), appBundle, getOutputPath().getParent());
-        appBundle = merger.merge();
-        // package bundle
-        AppBundlePackager packager = new AppBundlePackager(appBundle, getOutputPath());
-        packager.execute();
-        // sign bundle
-        if (!getDisableSign().isPresent() || !getDisableSign().get()) {
-            AppBundleSigner signer = new AppBundleSigner(getOutputPath());
-            getStoreFile().ifPresent(storeFile -> {
-                signer.setBundleSignature(new JarSigner.Signature(
-                        storeFile, getStorePassword().get(), getKeyAlias().get(), getKeyPassword().get()
-                ));
-            });
-            signer.execute();
+        // the analyzer's zip file is read lazily, keep it open until the bundle is packaged
+        try (AppBundleAnalyzer analyzer = new AppBundleAnalyzer(getBundlePath())) {
+            AppBundle appBundle = analyzer.analyze();
+            // merge duplicated resources file
+            try (DuplicatedResourcesMerger merger = new DuplicatedResourcesMerger(getBundlePath(), appBundle, getOutputPath().getParent())) {
+                appBundle = merger.merge();
+            }
+            // package bundle
+            AppBundlePackager packager = new AppBundlePackager(appBundle, getOutputPath());
+            packager.execute();
+            // sign bundle
+            if (!getDisableSign().isPresent() || !getDisableSign().get()) {
+                AppBundleSigner signer = new AppBundleSigner(getOutputPath());
+                getStoreFile().ifPresent(storeFile -> {
+                    signer.setBundleSignature(new JarSigner.Signature(
+                            storeFile, getStorePassword().get(), getKeyAlias().get(), getKeyPassword().get()
+                    ));
+                });
+                signer.execute();
+            }
         }
 
         long rawSize = FileOperation.getFileSizes(getBundlePath().toFile());

@@ -1,13 +1,14 @@
 package com.bytedance.android.plugin
 
-import com.android.build.gradle.AppExtension
-import com.android.build.gradle.api.ApplicationVariant
+import com.android.build.api.artifact.SingleArtifact
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.variant.ApplicationVariant
+import com.android.build.api.variant.impl.SigningConfigImpl
 import com.bytedance.android.plugin.extensions.AabResGuardExtension
 import com.bytedance.android.plugin.tasks.AabResGuardTask
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
 
 /**
  * Created by YangJing on 2019/10/15 .
@@ -17,54 +18,63 @@ class AabResGuardPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
         checkApplicationPlugin(project)
-        project.extensions.create("aabResGuard", AabResGuardExtension::class.java)
-
-        // Use a more flexible way to get the extension to avoid casting issues in AGP 8.0+
-        val android = project.extensions.findByName("android")
-        if (android == null) {
-            return
-        }
-
-        project.afterEvaluate {
-            // Fallback to old API for now but using reflection or safe casting
-            if (android is AppExtension) {
-                android.applicationVariants.all { variant ->
-                    createAabResGuardTask(project, variant)
-                }
-            }
+        val aabResGuard = project.extensions.create("aabResGuard", AabResGuardExtension::class.java)
+        val androidComponents = project.extensions.getByType(ApplicationAndroidComponentsExtension::class.java)
+        androidComponents.onVariants { variant ->
+            registerAabResGuardTask(project, variant, aabResGuard)
         }
     }
 
-    private fun createAabResGuardTask(project: Project, variant: ApplicationVariant) {
-        val variantName = variant.name.capitalize()
-        val bundleTaskName = "bundle$variantName"
-        if (project.tasks.findByName(bundleTaskName) == null) {
-            return
-        }
-        val aabResGuardTaskName = "aabresguard$variantName"
-        val aabResGuardTask: AabResGuardTask
-        aabResGuardTask = if (project.tasks.findByName(aabResGuardTaskName) == null) {
-            project.tasks.create(aabResGuardTaskName, AabResGuardTask::class.java)
-        } else {
-            project.tasks.getByName(aabResGuardTaskName) as AabResGuardTask
-        }
-        aabResGuardTask.setVariantScope(variant)
+    private fun registerAabResGuardTask(project: Project, variant: ApplicationVariant, aabResGuard: AabResGuardExtension) {
+        val variantName = variant.name.replaceFirstChar { it.uppercase() }
+        // Read eagerly so the provider closure below only captures a plain String
+        // (configuration-cache friendly).
+        val obfuscatedBundleFileName = aabResGuard.obfuscatedBundleFileName
 
-        val bundleTask: Task = project.tasks.getByName(bundleTaskName)
-        val bundlePackageTask: Task = project.tasks.getByName("package${variantName}Bundle")
-        bundleTask.dependsOn(aabResGuardTask)
-        aabResGuardTask.dependsOn(bundlePackageTask)
-        // AGP-4.0.0-alpha07: use FinalizeBundleTask to sign bundle file
-        // FinalizeBundleTask is executed after PackageBundleTask
-        val finalizeBundleTaskName = "sign${variantName}Bundle"
-        if (project.tasks.findByName(finalizeBundleTaskName) != null) {
-            aabResGuardTask.dependsOn(project.tasks.getByName(finalizeBundleTaskName))
+        val aabResGuardTask = project.tasks.register("aabresguard$variantName", AabResGuardTask::class.java) { task ->
+            // SingleArtifact.BUNDLE is the final (signed) bundle produced by the
+            // package<Variant>Bundle / sign<Variant>Bundle tasks; wiring it as an input
+            // also carries the dependency on those tasks.
+            task.bundleFile.set(variant.artifacts.get(SingleArtifact.BUNDLE))
+            // The obfuscated bundle is placed next to the final bundle file.
+            task.obfuscatedBundleFile.fileProvider(task.bundleFile.map { bundle ->
+                bundle.asFile.parentFile.resolve(obfuscatedBundleFileName)
+            })
+
+            task.enableObfuscate.set(aabResGuard.enableObfuscate)
+            aabResGuard.mappingFile?.let { task.mappingFile.fileValue(it.toFile()) }
+            task.whiteList.set(aabResGuard.whiteList ?: emptySet())
+            task.mergeDuplicatedRes.set(aabResGuard.mergeDuplicatedRes)
+            task.enableFilterFiles.set(aabResGuard.enableFilterFiles)
+            task.filterList.set(aabResGuard.filterList ?: emptySet())
+            task.enableFilterStrings.set(aabResGuard.enableFilterStrings)
+            aabResGuard.unusedStringPath?.let { task.unusedStringPath.set(it) }
+            task.languageWhiteList.set(aabResGuard.languageWhiteList ?: emptySet())
+
+            // shrinkResources unused.txt location for this variant (may not exist).
+            val simpleName = variant.name.replace("Release", "")
+            val unusedResName = simpleName.replaceFirstChar { it.lowercase() }
+            task.shrinkUnusedResourcesFile.set(
+                    project.layout.buildDirectory.file("outputs/mapping/$unusedResName/release/unused.txt"))
+
+            // Pass the signing config as lazy task inputs.
+            (variant.signingConfig as? SigningConfigImpl)?.let { signingConfig ->
+                task.storeFile.fileProvider(signingConfig.storeFile)
+                task.storePassword.set(signingConfig.storePassword)
+                task.keyAlias.set(signingConfig.keyAlias)
+                task.keyPassword.set(signingConfig.keyPassword)
+            }
+        }
+
+        // The bundle<Variant> lifecycle task depends on the obfuscation task.
+        project.tasks.matching { it.name == "bundle$variantName" }.configureEach {
+            it.dependsOn(aabResGuardTask)
         }
     }
 
     private fun checkApplicationPlugin(project: Project) {
         if (!project.plugins.hasPlugin("com.android.application")) {
-            throw  GradleException("Android Application plugin required")
+            throw GradleException("Android Application plugin required")
         }
     }
 }

@@ -10,10 +10,7 @@ public class AabResGuardMainTest extends BaseTest {
 
     @Test
     public void test_help() {
-        AabResGuardMain.main(
-                new String[]{
-                        "help"
-                }
-        );
+        // do not call main() here, System.exit would kill the test process
+        assert AabResGuardMain.execute(new String[]{"help"}) == 0;
     }
 }

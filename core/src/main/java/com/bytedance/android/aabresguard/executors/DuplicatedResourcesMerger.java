@@ -13,6 +13,7 @@ import com.bytedance.android.aabresguard.bundle.ResourcesTableOperation;
 import com.bytedance.android.aabresguard.utils.TimeClock;
 
 import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -39,7 +40,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
  * Created by YangJing on 2019/10/10 .
  * Email: yangjing.yeoh@bytedance.com
  */
-public class DuplicatedResourcesMerger {
+public class DuplicatedResourcesMerger implements Closeable {
     public static final String SUFFIX_FILE_DUPLICATED_LOGGER = "-duplicated.txt";
     private static final Logger logger = Logger.getLogger(DuplicatedResourcesMerger.class.getName());
     private final Path outputLogLocationDir;
@@ -57,6 +58,11 @@ public class DuplicatedResourcesMerger {
 
         bundleZipFile = new ZipFile(bundlePath.toFile());
         rawAppBundle = appBundle;
+    }
+
+    @Override
+    public void close() throws IOException {
+        bundleZipFile.close();
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -161,28 +167,28 @@ public class DuplicatedResourcesMerger {
     private void generateDuplicatedLog(File logFile, BundleModule bundleModule) throws IOException {
         int duplicatedSize = 0;
         checkFileDoesNotExist(logFile.toPath());
-        Writer writer = new BufferedWriter(new FileWriter(logFile, false));
-        writer.write("res filter path mapping:\n");
-        writer.flush();
-        for (Map.Entry<ZipPath, String> entry : duplicatedFileList.entrySet()) {
-            ZipPath keepPath = md5FileList.get(entry.getValue());
-            System.out.println(String.format("[merge duplicated] found duplicated file, path: %s", bundleModule.getName().getName() + "/" + entry.getKey().toString()));
-            ModuleEntry moduleEntry = bundleModule.getEntry(entry.getKey()).get();
-            long fileSize = AppBundleUtils.getZipEntrySize(bundleZipFile, moduleEntry, bundleModule);
-            duplicatedSize += fileSize;
+        try (Writer writer = new BufferedWriter(new FileWriter(logFile, false))) {
+            writer.write("res filter path mapping:\n");
+            writer.flush();
+            for (Map.Entry<ZipPath, String> entry : duplicatedFileList.entrySet()) {
+                ZipPath keepPath = md5FileList.get(entry.getValue());
+                System.out.println(String.format("[merge duplicated] found duplicated file, path: %s", bundleModule.getName().getName() + "/" + entry.getKey().toString()));
+                ModuleEntry moduleEntry = bundleModule.getEntry(entry.getKey()).get();
+                long fileSize = AppBundleUtils.getZipEntrySize(bundleZipFile, moduleEntry, bundleModule);
+                duplicatedSize += fileSize;
+                writer.write(
+                        "\t" + entry.getKey().toString()
+                                + " -> "
+                                + keepPath.toString()
+                                + " (size " + getNetFileSizeDescription(fileSize) + ")"
+                                + "\n"
+                );
+            }
             writer.write(
-                    "\t" + entry.getKey().toString()
-                            + " -> "
-                            + keepPath.toString()
-                            + " (size " + getNetFileSizeDescription(fileSize) + ")"
-                            + "\n"
+                    "removed: count(" + duplicatedFileList.size() + "), totalSize("
+                            + getNetFileSizeDescription(duplicatedSize) + ")"
             );
         }
-        writer.write(
-                "removed: count(" + duplicatedFileList.size() + "), totalSize("
-                        + getNetFileSizeDescription(duplicatedSize) + ")"
-        );
-        writer.close();
         System.out.println(String.format(
                 "[merge duplicated] duplicated count %s, total size: %s",
                 String.valueOf(duplicatedFileList.size()),

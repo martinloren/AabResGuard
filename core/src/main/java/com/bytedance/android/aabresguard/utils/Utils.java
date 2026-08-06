@@ -4,8 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,11 +21,11 @@ public class Utils {
         return !isPresent(str);
     }
 
-    public static boolean isPresent(Iterator iterator) {
+    public static boolean isPresent(Iterator<?> iterator) {
         return iterator != null && iterator.hasNext();
     }
 
-    public static boolean isBlank(Iterator iterator) {
+    public static boolean isBlank(Iterator<?> iterator) {
         return !isPresent(iterator);
     }
 
@@ -72,12 +70,13 @@ public class Utils {
         String output;
         Process process = null;
         try {
-            process = new ProcessBuilder(cmd).start();
+            // Merge stderr into stdout so the child can't deadlock on a full stderr pipe.
+            process = new ProcessBuilder(cmd).redirectErrorStream(true).start();
             output = readInputStream(process.getInputStream());
             process.waitFor();
             if (process.exitValue() != 0) {
                 System.err.println(String.format("%s Failed! Please check your signature file.\n", cmd[0]));
-                throw new RuntimeException(readInputStream(process.getErrorStream()));
+                throw new RuntimeException(output);
             }
         } finally {
             if (process != null) {
@@ -85,33 +84,6 @@ public class Utils {
             }
         }
         return output;
-    }
-
-    public static String runExec(String[] argv) throws IOException, InterruptedException {
-        Process process = null;
-        String output;
-        try {
-            process = Runtime.getRuntime().exec(argv);
-            output = readInputStream(process.getInputStream());
-            process.waitFor();
-            if (process.exitValue() != 0) {
-                System.err.println(String.format("%s Failed! Please check your signature file.\n", argv[0]));
-                throw new RuntimeException(readInputStream(process.getErrorStream()));
-            }
-        } finally {
-            if (process != null) {
-                process.destroy();
-            }
-        }
-        return output;
-    }
-
-    private static void processOutputStreamInThread(Process process) throws IOException {
-        InputStreamReader ir = new InputStreamReader(process.getInputStream());
-        LineNumberReader input = new LineNumberReader(ir);
-        //如果不读会有问题，被阻塞
-        while (input.readLine() != null) {
-        }
     }
 
     private static String replaceEach(String text, String[] searchList, String[] replacementList) {

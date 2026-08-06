@@ -114,28 +114,24 @@ public abstract class FileFilterCommand {
     public static FileFilterCommand fromFlags(ParsedFlags flags) throws DocumentException {
         Builder builder = builder();
         builder.setBundlePath(BUNDLE_LOCATION_FLAG.getRequiredValue(flags));
-        builder.setOutputPath(OUTPUT_FLAG.getRequiredValue(flags));
-
         // parse config
-        Optional<Path> configOptional = CONFIG_LOCATION_FLAG.getValue(flags);
-        if (configOptional.isPresent()) {
-            Path configPath = configOptional.get();
-            if (!configPath.toFile().getName().endsWith(".xml")) {
-                throw CommandExecutionException.builder()
-                        .withInternalMessage("Wrong properties: %s must end with '.xml'.",
-                                CONFIG_LOCATION_FLAG)
-                        .build();
-            }
-            FileFilterXmlParser parser = new FileFilterXmlParser(configPath);
-            FileFilterConfig fileFilter = parser.parse();
-            if (!fileFilter.isActive()) {
-                throw CommandExecutionException.builder()
-                        .withInternalMessage("parser attribute filter#isactive can not be 'false' in %s command",
-                                COMMAND_NAME)
-                        .build();
-            }
-            builder.setFileFilterRules(fileFilter.getRules());
+        Path configPath = CONFIG_LOCATION_FLAG.getRequiredValue(flags);
+        if (!configPath.toFile().getName().endsWith(".xml")) {
+            throw CommandExecutionException.builder()
+                    .withInternalMessage("Wrong properties: %s must end with '.xml'.",
+                            CONFIG_LOCATION_FLAG)
+                    .build();
         }
+        FileFilterXmlParser parser = new FileFilterXmlParser(configPath);
+        FileFilterConfig fileFilter = parser.parse();
+        if (!fileFilter.isActive()) {
+            throw CommandExecutionException.builder()
+                    .withInternalMessage("parser attribute filter#isactive can not be 'false' in %s command",
+                            COMMAND_NAME)
+                    .build();
+        }
+        builder.setFileFilterRules(fileFilter.getRules());
+        builder.setOutputPath(OUTPUT_FLAG.getRequiredValue(flags));
 
         DISABLE_SIGN_FLAG.getValue(flags).ifPresent(builder::setDisableSign);
         STORE_FILE_FLAG.getValue(flags).ifPresent(builder::setStoreFile);
@@ -148,22 +144,27 @@ public abstract class FileFilterCommand {
     public Path execute() throws IOException, DocumentException, InterruptedException {
         TimeClock timeClock = new TimeClock();
 
-        AppBundle appBundle = new AppBundleAnalyzer(getBundlePath()).analyze();
-        // filter bundle files
-        BundleFileFilter filter = new BundleFileFilter(getBundlePath(), appBundle, getFileFilterRules());
-        AppBundle filteredAppBundle = filter.filter();
-        // package bundle
-        AppBundlePackager packager = new AppBundlePackager(filteredAppBundle, getOutputPath());
-        packager.execute();
-        // sign bundle
-        if (!getDisableSign().isPresent() || !getDisableSign().get()) {
-            AppBundleSigner signer = new AppBundleSigner(getOutputPath());
-            getStoreFile().ifPresent(storeFile -> {
-                signer.setBundleSignature(new JarSigner.Signature(
-                        storeFile, getStorePassword().get(), getKeyAlias().get(), getKeyPassword().get()
-                ));
-            });
-            signer.execute();
+        // the analyzer's zip file is read lazily, keep it open until the bundle is packaged
+        try (AppBundleAnalyzer analyzer = new AppBundleAnalyzer(getBundlePath())) {
+            AppBundle appBundle = analyzer.analyze();
+            // filter bundle files
+            AppBundle filteredAppBundle;
+            try (BundleFileFilter filter = new BundleFileFilter(getBundlePath(), appBundle, getFileFilterRules())) {
+                filteredAppBundle = filter.filter();
+            }
+            // package bundle
+            AppBundlePackager packager = new AppBundlePackager(filteredAppBundle, getOutputPath());
+            packager.execute();
+            // sign bundle
+            if (!getDisableSign().isPresent() || !getDisableSign().get()) {
+                AppBundleSigner signer = new AppBundleSigner(getOutputPath());
+                getStoreFile().ifPresent(storeFile -> {
+                    signer.setBundleSignature(new JarSigner.Signature(
+                            storeFile, getStorePassword().get(), getKeyAlias().get(), getKeyPassword().get()
+                    ));
+                });
+                signer.execute();
+            }
         }
 
         long rawSize = FileOperation.getFileSizes(getBundlePath().toFile());

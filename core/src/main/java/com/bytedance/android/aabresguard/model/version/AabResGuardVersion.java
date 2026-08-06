@@ -10,7 +10,7 @@ import com.android.tools.build.bundletool.model.version.Version;
  */
 public class AabResGuardVersion {
 
-    private static final String CURRENT_VERSION = "0.9.0";
+    private static final String CURRENT_VERSION = "0.1.2026";
 
     /**
      * Returns the version of BundleTool being run.

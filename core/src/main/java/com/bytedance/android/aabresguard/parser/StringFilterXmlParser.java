@@ -25,23 +25,23 @@ public class StringFilterXmlParser {
 
     public StringFilterConfig parse() throws DocumentException {
         StringFilterConfig config = new StringFilterConfig();
-        SAXReader reader = new SAXReader();
+        SAXReader reader = AabResGuardXmlParser.createSAXReader();
         Document doc = reader.read(configPath.toFile());
         Element root = doc.getRootElement();
 
-        for (Iterator i = root.elementIterator("filter-str"); i.hasNext(); ) {
-            Element element = (Element) i.next();
+        for (Iterator<Element> i = root.elementIterator("filter-str"); i.hasNext(); ) {
+            Element element = i.next();
             String isActive = element.attributeValue("isactive");
             if (isActive != null && isActive.toLowerCase().equals("true")) {
                 config.setActive(true);
             }
-            for (Iterator rules = element.elementIterator("path"); rules.hasNext(); ) {
-                Element ruleElement = (Element) rules.next();
+            for (Iterator<Element> rules = element.elementIterator("path"); rules.hasNext(); ) {
+                Element ruleElement = rules.next();
                 String path = ruleElement.attributeValue("value");
                 config.setPath(path);
             }
-            for (Iterator rules = element.elementIterator("language"); rules.hasNext(); ) {
-                Element ruleElement = (Element) rules.next();
+            for (Iterator<Element> rules = element.elementIterator("language"); rules.hasNext(); ) {
+                Element ruleElement = rules.next();
                 String path = ruleElement.attributeValue("value");
                 config.getLanguageWhiteList().add(path);
             }

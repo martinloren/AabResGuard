@@ -20,15 +20,15 @@ open class AabResGuardExtension {
 
     override fun toString(): String {
         return "-------------- AabResGuardExtension --------------\n" +
-                "\tenableObfuscate=$enableObfuscate" +
-                "\tmappingFile=$mappingFile" +
-                "\twhiteList=${if (whiteList == null) null else whiteList}\n" +
-                "\tobfuscatedBundleFileName=$obfuscatedBundleFileName\n" +
+                "\tenableObfuscate=$enableObfuscate\n" +
+                "\tmappingFile=$mappingFile\n" +
+                "\twhiteList=$whiteList\n" +
+                "\tobfuscatedBundleFileName=${if (::obfuscatedBundleFileName.isInitialized) obfuscatedBundleFileName else null}\n" +
                 "\tmergeDuplicatedRes=$mergeDuplicatedRes\n" +
                 "\tenableFilterFiles=$enableFilterFiles\n" +
-                "\tfilterList=${if (filterList == null) null else filterList}" +
+                "\tfilterList=$filterList\n" +
                 "\tenableFilterStrings=$enableFilterStrings\n" +
                 "\tunusedStringPath=$unusedStringPath\n" +
-                "\tlanguageWhiteoolean`List=${if (languageWhiteList == null) null else languageWhiteList}"
+                "\tlanguageWhiteList=$languageWhiteList"
     }
 }

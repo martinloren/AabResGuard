@@ -23,27 +23,26 @@ public class AabResGuardMain {
     private static final String HELP_CMD = "help";
 
     public static void main(String[] args) {
-        main(args, Runtime.getRuntime());
+        System.exit(execute(args));
     }
 
     /**
      * Parses the flags and routes to the appropriate commands handler.
+     * Returns the exit code instead of calling System.exit so it can be tested safely.
      */
-    private static void main(String[] args, Runtime runtime) {
+    static int execute(String[] args) {
         final ParsedFlags flags;
         try {
             flags = new FlagParser().parse(args);
         } catch (FlagParser.FlagParseException e) {
             System.err.println("Error while parsing the flags: " + e.getMessage());
-            runtime.exit(1);
-            return;
+            return 1;
         }
         Optional<String> command = flags.getMainCommand();
         if (!command.isPresent()) {
             System.err.println("Error: You have to specify a commands.");
             help();
-            runtime.exit(1);
-            return;
+            return 1;
         }
         try {
             switch (command.get()) {
@@ -61,7 +60,7 @@ public class AabResGuardMain {
                     break;
                 case HELP_CMD:
                     if (flags.getSubCommand().isPresent()) {
-                        help(flags.getSubCommand().get(), runtime);
+                        return help(flags.getSubCommand().get());
                     } else {
                         help();
                     }
@@ -69,17 +68,15 @@ public class AabResGuardMain {
                 default:
                     System.err.printf("Error: Unrecognized command '%s'.%n%n%n", command.get());
                     help();
-                    runtime.exit(1);
-                    return;
+                    return 1;
             }
         } catch (Exception e) {
             System.err.println(
                     "[BT:" + AabResGuardVersion.getCurrentVersion() + "] Error: " + e.getMessage());
             e.printStackTrace();
-            runtime.exit(1);
-            return;
+            return 1;
         }
-        runtime.exit(0);
+        return 0;
     }
 
     /**
@@ -103,7 +100,7 @@ public class AabResGuardMain {
     /**
      * Displays help about a given commands.
      */
-    public static void help(String commandName, Runtime runtime) {
+    public static int help(String commandName) {
         CommandHelp commandHelp;
         switch (commandName) {
             case ObfuscateBundleCommand.COMMAND_NAME:
@@ -121,9 +118,9 @@ public class AabResGuardMain {
             default:
                 System.err.printf("Error: Unrecognized command '%s'.%n%n%n", commandName);
                 help();
-                runtime.exit(1);
-                return;
+                return 1;
         }
         commandHelp.printDetails(System.out);
+        return 0;
     }
 }

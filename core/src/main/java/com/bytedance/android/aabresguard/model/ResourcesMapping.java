@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -19,6 +21,8 @@ public class ResourcesMapping {
     private Map<String, String> dirMapping = new HashMap<>();
     private Map<String, String> resourceMapping = new HashMap<>();
     private Map<String, String> entryFilesMapping = new HashMap<>();
+    // reverse lookup of resourceMapping values for O(1) duplicate checks
+    private Set<String> obfuscatedResourceNames = new HashSet<>();
 
     private Map<String, String> resourcesNameToIdMapping = new HashMap<>();
     private Map<String, String> resourcesPathToIdMapping = new HashMap<>();
@@ -48,13 +52,21 @@ public class ResourcesMapping {
     }
 
     public void putResourceMapping(String rawResource, String obfuscateResource) {
-        if (resourceMapping.values().contains(obfuscateResource)) {
+        if (obfuscatedResourceNames.contains(obfuscateResource)) {
             throw new IllegalArgumentException(
                     String.format("Multiple entries: %s -> %s",
                             rawResource, obfuscateResource)
             );
         }
         resourceMapping.put(rawResource, obfuscateResource);
+        obfuscatedResourceNames.add(obfuscateResource);
+    }
+
+    public void removeResourceMapping(String rawResource) {
+        String obfuscateResource = resourceMapping.remove(rawResource);
+        if (obfuscateResource != null) {
+            obfuscatedResourceNames.remove(obfuscateResource);
+        }
     }
 
     public void putEntryFileMapping(String rawPath, String obfuscatedPath) {
@@ -83,46 +95,45 @@ public class ResourcesMapping {
      * Write mapping rules to file.
      */
     public void writeMappingToFile(Path mappingPath) throws IOException {
-        Writer writer = new BufferedWriter(new FileWriter(mappingPath.toFile(), false));
+        try (Writer writer = new BufferedWriter(new FileWriter(mappingPath.toFile(), false))) {
 
-        // write resources dir
-        writer.write("res dir mapping:\n");
-        for (Map.Entry<String, String> entry : dirMapping.entrySet()) {
-            writer.write(String.format(
-                    "\t%s -> %s\n",
-                    entry.getKey(),
-                    entry.getValue()
-            ));
+            // write resources dir
+            writer.write("res dir mapping:\n");
+            for (Map.Entry<String, String> entry : dirMapping.entrySet()) {
+                writer.write(String.format(
+                        "\t%s -> %s\n",
+                        entry.getKey(),
+                        entry.getValue()
+                ));
+            }
+            writer.write("\n\n");
+            writer.flush();
+
+            // write resources name
+            writer.write("res id mapping:\n");
+            for (Map.Entry<String, String> entry : resourceMapping.entrySet()) {
+                writer.write(String.format(
+                        "\t%s : %s -> %s\n",
+                        resourcesNameToIdMapping.get(entry.getKey()),
+                        entry.getKey(),
+                        entry.getValue()
+                ));
+            }
+            writer.write("\n\n");
+            writer.flush();
+
+            // write resources entries path
+            writer.write("res entries path mapping:\n");
+            for (Map.Entry<String, String> entry : entryFilesMapping.entrySet()) {
+                writer.write(String.format(
+                        "\t%s : %s -> %s\n",
+                        resourcesPathToIdMapping.get(entry.getKey()),
+                        entry.getKey(),
+                        entry.getValue()
+                ));
+            }
+            writer.write("\n\n");
+            writer.flush();
         }
-        writer.write("\n\n");
-        writer.flush();
-
-        // write resources name
-        writer.write("res id mapping:\n");
-        for (Map.Entry<String, String> entry : resourceMapping.entrySet()) {
-            writer.write(String.format(
-                    "\t%s : %s -> %s\n",
-                    resourcesNameToIdMapping.get(entry.getKey()),
-                    entry.getKey(),
-                    entry.getValue()
-            ));
-        }
-        writer.write("\n\n");
-        writer.flush();
-
-        // write resources entries path
-        writer.write("res entries path mapping:\n");
-        for (Map.Entry<String, String> entry : entryFilesMapping.entrySet()) {
-            writer.write(String.format(
-                    "\t%s : %s -> %s\n",
-                    resourcesPathToIdMapping.get(entry.getKey()),
-                    entry.getKey(),
-                    entry.getValue()
-            ));
-        }
-        writer.write("\n\n");
-        writer.flush();
-
-        writer.close();
     }
 }

@@ -171,63 +171,70 @@ public abstract class ObfuscateBundleCommand {
     public Path execute() throws IOException, InterruptedException {
         TimeClock timeClock = new TimeClock();
 
-        AppBundle appBundle = new AppBundleAnalyzer(getBundlePath()).analyze();
-        // filter file
-        if (getFilterFile().isPresent() && getFilterFile().get()) {
-            Set<String> fileFilterRules = new HashSet<>();
-            if (getFileFilterRules().isPresent()) {
-                fileFilterRules = getFileFilterRules().get();
-            }
-            BundleFileFilter filter = new BundleFileFilter(getBundlePath(), appBundle, fileFilterRules);
-            appBundle = filter.filter();
-        }
-
-        // remove unused strings, need execute before obfuscate
-        if (getRemoveStr().isPresent() && getRemoveStr().get()) {
-            File unusedFile = new File("");
-            if (getUnusedStrPath().isPresent()) {
-                File file = new File(getUnusedStrPath().get());
-                if (file.exists()) {
-                    unusedFile = file;
-                } else {
-                    System.out.println("unusedFile is not exists!");
+        // the analyzer's zip file is read lazily, keep it open until the bundle is packaged
+        try (AppBundleAnalyzer analyzer = new AppBundleAnalyzer(getBundlePath())) {
+            AppBundle appBundle = analyzer.analyze();
+            // filter file
+            if (getFilterFile().isPresent() && getFilterFile().get()) {
+                Set<String> fileFilterRules = new HashSet<>();
+                if (getFileFilterRules().isPresent()) {
+                    fileFilterRules = getFileFilterRules().get();
+                }
+                try (BundleFileFilter filter = new BundleFileFilter(getBundlePath(), appBundle, fileFilterRules)) {
+                    appBundle = filter.filter();
                 }
             }
-            Set<String> languageWhiteList = new HashSet<>();
-            if (getLanguageWhiteList().isPresent()) {
-                languageWhiteList = getLanguageWhiteList().get();
-            }
-            BundleStringFilter filter =
-                    new BundleStringFilter(getBundlePath(), appBundle, unusedFile.getPath(), languageWhiteList);
-            appBundle = filter.filter();
-        }
 
-        // merge duplicated resources
-        if (getMergeDuplicatedResources().isPresent() && getMergeDuplicatedResources().get()) {
-            DuplicatedResourcesMerger merger = new DuplicatedResourcesMerger(getBundlePath(), appBundle, getOutputPath().getParent());
-            appBundle = merger.merge();
-        }
-        // obfuscate bundle
-        if (getEnableObfuscate()) {
-            Path mappingPath = null;
-            if (getMappingPath().isPresent()) {
-                mappingPath = getMappingPath().get();
+            // remove unused strings, need execute before obfuscate
+            if (getRemoveStr().isPresent() && getRemoveStr().get()) {
+                String unusedStrPath = null;
+                if (getUnusedStrPath().isPresent()) {
+                    File file = new File(getUnusedStrPath().get());
+                    if (file.exists()) {
+                        unusedStrPath = file.getPath();
+                    } else {
+                        System.out.println("unusedFile is not exists!");
+                    }
+                }
+                Set<String> languageWhiteList = new HashSet<>();
+                if (getLanguageWhiteList().isPresent()) {
+                    languageWhiteList = getLanguageWhiteList().get();
+                }
+                try (BundleStringFilter filter =
+                             new BundleStringFilter(getBundlePath(), appBundle, unusedStrPath, languageWhiteList)) {
+                    appBundle = filter.filter();
+                }
             }
-            ResourcesObfuscator obfuscator = new ResourcesObfuscator(getBundlePath(), appBundle, getWhiteList(), getOutputPath().getParent(), mappingPath);
-            appBundle = obfuscator.obfuscate();
-        }
-        // package bundle
-        AppBundlePackager packager = new AppBundlePackager(appBundle, getOutputPath());
-        packager.execute();
-        // sign bundle
-        if (!getDisableSign().isPresent() || !getDisableSign().get()) {
-            AppBundleSigner signer = new AppBundleSigner(getOutputPath());
-            getStoreFile().ifPresent(storeFile -> {
-                signer.setBundleSignature(new JarSigner.Signature(
-                        storeFile, getStorePassword().get(), getKeyAlias().get(), getKeyPassword().get()
-                ));
-            });
-            signer.execute();
+
+            // merge duplicated resources
+            if (getMergeDuplicatedResources().isPresent() && getMergeDuplicatedResources().get()) {
+                try (DuplicatedResourcesMerger merger = new DuplicatedResourcesMerger(getBundlePath(), appBundle, getOutputPath().getParent())) {
+                    appBundle = merger.merge();
+                }
+            }
+            // obfuscate bundle
+            if (getEnableObfuscate()) {
+                Path mappingPath = null;
+                if (getMappingPath().isPresent()) {
+                    mappingPath = getMappingPath().get();
+                }
+                try (ResourcesObfuscator obfuscator = new ResourcesObfuscator(getBundlePath(), appBundle, getWhiteList(), getOutputPath().getParent(), mappingPath)) {
+                    appBundle = obfuscator.obfuscate();
+                }
+            }
+            // package bundle
+            AppBundlePackager packager = new AppBundlePackager(appBundle, getOutputPath());
+            packager.execute();
+            // sign bundle
+            if (!getDisableSign().isPresent() || !getDisableSign().get()) {
+                AppBundleSigner signer = new AppBundleSigner(getOutputPath());
+                getStoreFile().ifPresent(storeFile -> {
+                    signer.setBundleSignature(new JarSigner.Signature(
+                            storeFile, getStorePassword().get(), getKeyAlias().get(), getKeyPassword().get()
+                    ));
+                });
+                signer.execute();
+            }
         }
 
         long rawSize = FileOperation.getFileSizes(getBundlePath().toFile());

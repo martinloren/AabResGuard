@@ -14,6 +14,7 @@ import com.bytedance.android.aabresguard.utils.Utils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.rmi.UnexpectedException;
@@ -36,7 +37,7 @@ import static com.bytedance.android.aabresguard.utils.FileOperation.getNetFileSi
  * Created by YangJing on 2019/10/12 .
  * Email: yangjing.yeoh@bytedance.com
  */
-public class BundleFileFilter {
+public class BundleFileFilter implements Closeable {
 
     private static final Logger logger = Logger.getLogger(BundleFileFilter.class.getName());
     private static final Set<String> FILE_SIGN = new HashSet<>(
@@ -49,6 +50,7 @@ public class BundleFileFilter {
     private final ZipFile bundleZipFile;
     private final AppBundle rawAppBundle;
     private final Set<String> filterRules;
+    private final Map<String, Pattern> filterPatterns = new HashMap<>();
 
     private int filterTotalSize = 0;
     private int filterTotalCount = 0;
@@ -60,9 +62,18 @@ public class BundleFileFilter {
         if (filterRules == null) {
             filterRules = new HashSet<>();
         }
-        this.filterRules = filterRules;
+        // defensive copy: the caller's set may be immutable and must never be mutated
+        this.filterRules = new HashSet<>(filterRules);
+        this.filterRules.addAll(FILE_SIGN);
+        // precompile filter patterns once instead of per entry
+        for (String rule : this.filterRules) {
+            filterPatterns.put(rule, Pattern.compile(Utils.convertToPatternString(rule)));
+        }
+    }
 
-        filterRules.addAll(FILE_SIGN);
+    @Override
+    public void close() throws IOException {
+        bundleZipFile.close();
     }
 
     public AppBundle filter() throws IOException {
@@ -173,10 +184,9 @@ public class BundleFileFilter {
     }
 
     private String getMatchedFilterRule(ZipPath zipPath) {
-        for (String rule : filterRules) {
-            Pattern filterPattern = Pattern.compile(Utils.convertToPatternString(rule));
-            if (filterPattern.matcher(zipPath.toString()).matches()) {
-                return rule;
+        for (Map.Entry<String, Pattern> filterPattern : filterPatterns.entrySet()) {
+            if (filterPattern.getValue().matcher(zipPath.toString()).matches()) {
+                return filterPattern.getKey();
             }
         }
         return null;

@@ -2,29 +2,29 @@
 
 buildscript {
     apply from: rootProject.file("gradle/config.gradle")
+
+    def useLocalMaven = "true".equalsIgnoreCase(String.valueOf(findProperty("useLocalMaven")))
+
     repositories {
         google()
         mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://repo.grails.org/grails/core" }
-        if ("true".equalsIgnoreCase(System.getProperty('useLocalMaven', "false"))) {
-            println "Using local repo."
+        maven { url = "https://plugins.gradle.org/m2/" }
+        if (useLocalMaven) {
             mavenLocal()
         } else {
-            println "Using remote repo."
-            maven { url findProperty("RELEASE_REPOSITORY_URL") }
-            maven { url findProperty("SNAPSHOT_REPOSITORY_URL") }
+            [findProperty("RELEASE_REPOSITORY_URL"), findProperty("SNAPSHOT_REPOSITORY_URL")].each { repoUrl ->
+                if (repoUrl?.toString()?.trim()) {
+                    maven { url = repoUrl }
+                }
+            }
         }
     }
     dependencies {
-        classpath deps.plugin.digital
-        classpath deps.plugin.shadow
-        classpath deps.plugin['bintray-plugin']
-        classpath 'com.android.tools.build:gradle:9.0.1'
+        classpath "com.android.tools.build:gradle:${versions.agp}"
         classpath deps.kotlin.plugin
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.10"
+        classpath deps.plugin.shadow
 
-        if ("true".equalsIgnoreCase(System.getProperty("enableAabResGuardPlugin", "false"))) {
+        if ("true".equalsIgnoreCase(String.valueOf(findProperty("enableAabResGuardPlugin")))) {
             classpath deps.aabresguard.plugin
         }
     }
@@ -34,16 +34,18 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url "https://repo.grails.org/grails/core" }
-        if ("true".equalsIgnoreCase(System.getProperty('useLocalMaven', "false"))) {
+        if ("true".equalsIgnoreCase(String.valueOf(findProperty("useLocalMaven")))) {
             mavenLocal()
         } else {
-            maven { url findProperty("RELEASE_REPOSITORY_URL") }
-            maven { url findProperty("SNAPSHOT_REPOSITORY_URL") }
+            [findProperty("RELEASE_REPOSITORY_URL"), findProperty("SNAPSHOT_REPOSITORY_URL")].each { repoUrl ->
+                if (repoUrl?.toString()?.trim()) {
+                    maven { url = repoUrl }
+                }
+            }
         }
     }
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+tasks.register('clean', Delete) {
+    delete rootProject.layout.buildDirectory
 }

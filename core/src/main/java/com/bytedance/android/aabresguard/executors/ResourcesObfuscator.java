@@ -20,6 +20,7 @@ import com.bytedance.android.aabresguard.utils.Utils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteSource;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -51,13 +52,13 @@ import static com.bytedance.android.aabresguard.utils.FileOperation.getParentFro
  * Created by YangJing on 2019/10/14 .
  * Email: yangjing.yeoh@bytedance.com
  */
-public class ResourcesObfuscator {
+public class ResourcesObfuscator implements Closeable {
     public static final String RESOURCE_ANDROID_PREFIX = "android:";
     public static final String FILE_MAPPING_NAME = "resources-mapping.txt";
     private static final Logger logger = Logger.getLogger(ResourcesObfuscator.class.getName());
 
     private final AppBundle rawAppBundle;
-    private final Set<String> whiteListRules;
+    private final Set<Pattern> whiteListPatterns;
     private final Path outputMappingPath;
     private final ZipFile bundleZipFile;
     private ResourcesMapping resourcesMapping;
@@ -79,8 +80,16 @@ public class ResourcesObfuscator {
         }
 
         this.rawAppBundle = rawAppBundle;
-        this.whiteListRules = whiteListRules;
+        // precompile whitelist patterns once instead of per resource
+        this.whiteListPatterns = whiteListRules.stream()
+                .map(rule -> Pattern.compile(Utils.convertToPatternString(rule)))
+                .collect(Collectors.toSet());
 
+    }
+
+    @Override
+    public void close() throws IOException {
+        bundleZipFile.close();
     }
 
     public Path getOutputMappingPath() {
@@ -183,7 +192,7 @@ public class ResourcesObfuscator {
                             resourceName,
                             resourceId
                     ));
-                    resourcesMapping.getResourceMapping().remove(resourceName);
+                    resourcesMapping.removeResourceMapping(resourceName);
                 } else {
                     //System.out.println("Obfuscating resource: " + resourceName);
                     String obfuscateResourceName = resourcesMapping.getResourceMapping().get(resourceName);
@@ -367,8 +376,7 @@ public class ResourcesObfuscator {
         if (resourceName.startsWith(RESOURCE_ANDROID_PREFIX)) {
             return false;
         }
-        for (String rule : whiteListRules) {
-            Pattern filterPattern = Pattern.compile(Utils.convertToPatternString(rule));
+        for (Pattern filterPattern : whiteListPatterns) {
             if (filterPattern.matcher(resourceName).matches()) {
                 return false;
             }

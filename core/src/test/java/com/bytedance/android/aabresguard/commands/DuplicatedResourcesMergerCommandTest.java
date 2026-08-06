@@ -71,7 +71,7 @@ public class DuplicatedResourcesMergerCommandTest extends BaseTest {
                 ).execute());
         assertThat(flagsException)
                 .hasMessageThat()
-                .matches(String.format("File '%s' was not found.", apkFile.getAbsolutePath()));
+                .matches(java.util.regex.Pattern.quote(String.format("File '%s' was not found.", apkFile.getAbsolutePath())));
     }
 
     @Test

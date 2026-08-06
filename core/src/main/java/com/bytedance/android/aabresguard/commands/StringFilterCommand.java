@@ -116,31 +116,36 @@ public abstract class StringFilterCommand {
     public Path execute() throws IOException, DocumentException, InterruptedException {
         TimeClock timeClock = new TimeClock();
 
-        AppBundle appBundle = new AppBundleAnalyzer(getBundlePath()).analyze();
-        // parse config.xml
-        StringFilterXmlParser parser = new StringFilterXmlParser(getConfigPath());
-        StringFilterConfig config = parser.parse();
-        if (!config.isActive()) {
-            throw CommandExecutionException.builder()
-                    .withInternalMessage("parser attribute filter#isactive can not be 'false' in %s command",
-                            COMMAND_NAME)
-                    .build();
+        // the analyzer's zip file is read lazily, keep it open until the bundle is packaged
+        try (AppBundleAnalyzer analyzer = new AppBundleAnalyzer(getBundlePath())) {
+            AppBundle appBundle = analyzer.analyze();
+            // parse config.xml
+            StringFilterXmlParser parser = new StringFilterXmlParser(getConfigPath());
+            StringFilterConfig config = parser.parse();
+            if (!config.isActive()) {
+                throw CommandExecutionException.builder()
+                        .withInternalMessage("parser attribute filter#isactive can not be 'false' in %s command",
+                                COMMAND_NAME)
+                        .build();
+            }
+            // filter bundle strings
+            AppBundle filteredAppBundle;
+            try (BundleStringFilter filter =
+                         new BundleStringFilter(getBundlePath(), appBundle, config.getPath(), config.getLanguageWhiteList())) {
+                filteredAppBundle = filter.filter();
+            }
+            // package bundle
+            AppBundlePackager packager = new AppBundlePackager(filteredAppBundle, getOutputPath());
+            packager.execute();
+            // sign bundle
+            AppBundleSigner signer = new AppBundleSigner(getOutputPath());
+            getStoreFile().ifPresent(storeFile -> {
+                signer.setBundleSignature(new JarSigner.Signature(
+                        storeFile, getStorePassword().get(), getKeyAlias().get(), getKeyPassword().get()
+                ));
+            });
+            signer.execute();
         }
-        // filter bundle strings
-        BundleStringFilter filter =
-                new BundleStringFilter(getBundlePath(), appBundle, config.getPath(), config.getLanguageWhiteList());
-        AppBundle filteredAppBundle = filter.filter();
-        // package bundle
-        AppBundlePackager packager = new AppBundlePackager(filteredAppBundle, getOutputPath());
-        packager.execute();
-        // sign bundle
-        AppBundleSigner signer = new AppBundleSigner(getOutputPath());
-        getStoreFile().ifPresent(storeFile -> {
-            signer.setBundleSignature(new JarSigner.Signature(
-                    storeFile, getStorePassword().get(), getKeyAlias().get(), getKeyPassword().get()
-            ));
-        });
-        signer.execute();
 
         long rawSize = FileOperation.getFileSizes(getBundlePath().toFile());
         long filteredSize = FileOperation.getFileSizes(getOutputPath().toFile());

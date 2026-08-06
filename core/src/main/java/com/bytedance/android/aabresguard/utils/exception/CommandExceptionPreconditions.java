@@ -11,11 +11,11 @@ import java.util.Optional;
  */
 public final class CommandExceptionPreconditions {
 
-    public static void checkFlagPresent(Object object, Flag flag) {
+    public static void checkFlagPresent(Object object, Flag<?> flag) {
         if (object instanceof Optional) {
-            object = ((Optional) object).get();
+            object = ((Optional<?>) object).orElse(null);
         }
-        Optional.of(object).orElseThrow(() -> CommandExecutionException.builder()
+        Optional.ofNullable(object).orElseThrow(() -> CommandExecutionException.builder()
                 .withInternalMessage("Wrong properties: %s can not be empty", flag)
                 //.withMessage("Wrong properties: %s can not be empty", flag)
                 .build());

@@ -13,7 +13,7 @@ import java.nio.file.Path;
 public class AppBundleSigner {
 
     private Path bundleFile;
-    private JarSigner.Signature bundleSignature = JarSigner.Signature.DEBUG_SIGNATURE;
+    private JarSigner.Signature bundleSignature;
 
     public AppBundleSigner(Path bundleFile, JarSigner.Signature signature) {
         this.bundleFile = bundleFile;
@@ -30,6 +30,7 @@ public class AppBundleSigner {
 
     public void execute() throws IOException, InterruptedException {
         if (bundleSignature == null) {
+            System.err.println("WARNING: no signing config found, the bundle is left UNSIGNED!");
             return;
         }
         TimeClock timeClock = new TimeClock();

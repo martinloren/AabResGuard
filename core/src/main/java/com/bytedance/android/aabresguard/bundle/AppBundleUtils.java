@@ -38,11 +38,8 @@ public class AppBundleUtils {
     public static String getEntryMd5(ZipFile bundleZipFile, ModuleEntry entry, BundleModule bundleModule) {
         String path = String.format("%s/%s", bundleModule.getName().getName(), entry.getPath().toString());
         ZipEntry bundleConfigEntry = bundleZipFile.getEntry(path);
-        try {
-            InputStream is = new BufferedInputStream(bundleZipFile.getInputStream(bundleConfigEntry));
-            String md5 = bytesToHexString(DigestUtils.md5(is));
-            is.close();
-            return md5;
+        try (InputStream is = new BufferedInputStream(bundleZipFile.getInputStream(bundleConfigEntry))) {
+            return DigestUtils.md5Hex(is);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -51,45 +48,31 @@ public class AppBundleUtils {
     public static byte[] readByte(ZipFile bundleZipFile, ModuleEntry entry, BundleModule bundleModule) throws IOException {
         String path = String.format("%s/%s", bundleModule.getName().getName(), entry.getPath().toString());
         ZipEntry bundleConfigEntry = bundleZipFile.getEntry(path);
-        InputStream is = new BufferedInputStream(bundleZipFile.getInputStream(bundleConfigEntry));
-        byte[] bytes = IOUtils.toByteArray(is);
-        is.close();
-        return bytes;
+        try (InputStream is = new BufferedInputStream(bundleZipFile.getInputStream(bundleConfigEntry))) {
+            return IOUtils.toByteArray(is);
+        }
     }
 
-    public static String bytesToHexString(byte[] src) {
-        if (src.length <= 0) {
-            return "";
-        }
-        StringBuilder stringBuilder = new StringBuilder(src.length);
-        for (byte b : src) {
-            int v = b & 0xFF;
-            String hv = Integer.toHexString(v);
-            if (hv.length() < 2) {
-                stringBuilder.append(0);
-            }
-            stringBuilder.append(hv);
-        }
-        return stringBuilder.toString();
-    }
-
-    public static String getEntryNameByResourceName(String resourceName) {
+    private static String[] splitResourceName(String resourceName) {
         int index = resourceName.indexOf(".R.");
+        if (index < 0) {
+            throw new RuntimeException("Invalid resource format, it should be package.type.entry, yours: " + resourceName);
+        }
         String value = resourceName.substring(index + 3);
         String[] values = value.replace(".", "/").split("/");
         if (values.length != 2) {
             throw new RuntimeException("Invalid resource format, it should be package.type.entry, yours: " + resourceName);
         }
+        return values;
+    }
+
+    public static String getEntryNameByResourceName(String resourceName) {
+        String[] values = splitResourceName(resourceName);
         return values[values.length - 1];
     }
 
     public static String getTypeNameByResourceName(String resourceName) {
-        int index = resourceName.indexOf(".R.");
-        String value = resourceName.substring(index + 3);
-        String[] values = value.replace(".", "/").split("/");
-        if (values.length != 2) {
-            throw new RuntimeException("Invalid resource format, it should be package.type.entry, yours: " + resourceName);
-        }
+        String[] values = splitResourceName(resourceName);
         return values[0];
     }
 

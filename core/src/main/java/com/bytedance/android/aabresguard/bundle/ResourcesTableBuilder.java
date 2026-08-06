@@ -1,12 +1,10 @@
 package com.bytedance.android.aabresguard.bundle;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.android.aapt.Resources;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -23,13 +21,11 @@ public class ResourcesTableBuilder {
 
     private Resources.ResourceTable.Builder table;
     private Map<String, PackageBuilder> resPackageMap;
-    private List<Resources.Package> resPackages;
 
 
     public ResourcesTableBuilder() {
         table = Resources.ResourceTable.newBuilder();
-        resPackageMap = new HashMap<>();
-        resPackages = new ArrayList<>();
+        resPackageMap = new LinkedHashMap<>();
     }
 
     /**

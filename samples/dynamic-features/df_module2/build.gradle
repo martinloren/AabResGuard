@@ -1,8 +1,8 @@
 apply plugin: 'com.android.dynamic-feature'
 
 android {
-    namespace "com.bytedance.android.df.module2"
-    compileSdkVersion versions.compileSdkVersion
+    namespace = "com.bytedance.android.df.module2"
+    compileSdk = versions.compileSdkVersion
 
     defaultConfig {
         minSdkVersion versions.minSdkVersion

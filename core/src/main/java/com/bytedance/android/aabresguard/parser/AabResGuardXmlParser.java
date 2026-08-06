@@ -6,6 +6,7 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
+import org.xml.sax.SAXException;
 
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -24,13 +25,24 @@ public class AabResGuardXmlParser {
         this.configPath = configPath;
     }
 
+    static SAXReader createSAXReader() {
+        SAXReader reader = new SAXReader();
+        try {
+            // harden against XXE attacks
+            reader.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        } catch (SAXException e) {
+            // the underlying parser does not support this feature, ignore
+        }
+        return reader;
+    }
+
     public AabResGuardConfig parse() throws DocumentException {
         AabResGuardConfig aabResGuardConfig = new AabResGuardConfig();
-        SAXReader reader = new SAXReader();
+        SAXReader reader = createSAXReader();
         Document doc = reader.read(configPath.toFile());
         Element root = doc.getRootElement();
-        for (Iterator i = root.elementIterator("issue"); i.hasNext(); ) {
-            Element element = (Element) i.next();
+        for (Iterator<Element> i = root.elementIterator("issue"); i.hasNext(); ) {
+            Element element = i.next();
             String id = element.attributeValue("id");
             if (id == null || !id.equals("whitelist")) {
                 continue;
@@ -39,8 +51,8 @@ public class AabResGuardXmlParser {
             if (isActive != null && isActive.equals("true")) {
                 aabResGuardConfig.setUseWhiteList(true);
             }
-            for (Iterator rules = element.elementIterator("path"); rules.hasNext(); ) {
-                Element ruleElement = (Element) rules.next();
+            for (Iterator<Element> rules = element.elementIterator("path"); rules.hasNext(); ) {
+                Element ruleElement = rules.next();
                 String rule = ruleElement.attributeValue("value");
                 if (rule != null) {
                     aabResGuardConfig.addWhiteList(rule);

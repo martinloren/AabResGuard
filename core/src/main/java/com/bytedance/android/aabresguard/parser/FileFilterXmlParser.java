@@ -27,17 +27,17 @@ public class FileFilterXmlParser {
     public FileFilterConfig parse() throws DocumentException {
         FileFilterConfig fileFilter = new FileFilterConfig();
 
-        SAXReader reader = new SAXReader();
+        SAXReader reader = AabResGuardXmlParser.createSAXReader();
         Document doc = reader.read(configPath.toFile());
         Element root = doc.getRootElement();
-        for (Iterator i = root.elementIterator("filter"); i.hasNext(); ) {
-            Element element = (Element) i.next();
+        for (Iterator<Element> i = root.elementIterator("filter"); i.hasNext(); ) {
+            Element element = i.next();
             String isActiveValue = element.attributeValue("isactive");
             if (isActiveValue != null && isActiveValue.equals("true")) {
                 fileFilter.setActive(true);
             }
-            for (Iterator rules = element.elementIterator("rule"); rules.hasNext(); ) {
-                Element ruleElement = (Element) rules.next();
+            for (Iterator<Element> rules = element.elementIterator("rule"); rules.hasNext(); ) {
+                Element ruleElement = rules.next();
                 String rule = ruleElement.attributeValue("value");
                 if (rule != null) {
                     fileFilter.addRule(rule);

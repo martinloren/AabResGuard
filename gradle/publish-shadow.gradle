@@ -1,27 +1,21 @@
 apply plugin: 'maven-publish'
 
-task sourcesJar(type: Jar) {
-    from sourceSets.main.java.srcDirs
+def sourcesJar = tasks.register('sourcesJar', Jar) {
+    from sourceSets.main.allSource
     archiveClassifier = 'sources'
-    version = versions[ARTIFACT_ID]
+    archiveVersion = versions[ARTIFACT_ID]
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
+def javadocJar = tasks.register('javadocJar', Jar) {
+    dependsOn tasks.named('javadoc')
     archiveClassifier = 'javadoc'
-    from javadoc.destinationDir
-    version = versions[ARTIFACT_ID]
+    from javadoc
+    archiveVersion = versions[ARTIFACT_ID]
 }
 
-def releasesRepoUrl = System.getProperty("RELEASE_REPOSITORY_URL")
-def snapshotsRepoUrl = System.getProperty("SNAPSHOT_REPOSITORY_URL")
+def releasesRepoUrl = findProperty("RELEASE_REPOSITORY_URL")?.toString()
+def snapshotsRepoUrl = findProperty("SNAPSHOT_REPOSITORY_URL")?.toString()
 def publishUrl = versions[ARTIFACT_ID].endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-def publishUserName = System.getProperty("NEXUS_USERNAME")
-def publishPassword = System.getProperty("NEXUS_PASSWORD")
-
-println "-------publish info---------"
-println "url: $publishUrl"
-println "username: $publishUserName"
-println "password: $publishPassword"
 
 def pomConfig = {
     licenses {
@@ -33,20 +27,25 @@ def pomConfig = {
     }
     developers {
         developer {
-            id bintrayInfo.developer.id
-            name bintrayInfo.developer.name
-            email bintrayInfo.developer.email
+            id pomInfo.developer.id
+            name pomInfo.developer.name
+            email pomInfo.developer.email
         }
     }
     scm {
-        url bintrayInfo.repo.siteUrl
+        url pomInfo.repo.siteUrl
     }
 }
 
 publishing {
     publications {
         MyPublication(MavenPublication) { publication ->
-            project.shadow.component(publication)
+            // Publish the self-contained shadow jar as the main artifact.
+            // Deliberately NOT attached to a component: the fat jar embeds all
+            // runtime dependencies, so the pom must stay dependency-free to
+            // avoid leaking shaded libs (e.g. dom4j -> xpp3) onto consumers'
+            // classpaths.
+            artifact shadowJar
             groupId GROUP_ID
             artifactId ARTIFACT_ID
             version versions[ARTIFACT_ID]
@@ -56,30 +55,28 @@ publishing {
 
             pom.withXml {
                 def root = asNode()
-                root.appendNode('description', bintrayInfo.repo.description)
-                root.appendNode('name', bintrayInfo.repo.name)
-                root.appendNode('url', bintrayInfo.repo.siteUrl)
+                root.appendNode('description', pomInfo.repo.description)
+                root.appendNode('name', pomInfo.repo.name)
+                root.appendNode('url', pomInfo.repo.siteUrl)
                 root.children().last() + pomConfig
             }
         }
     }
 
-    if (!System.getProperty("uploadToBintray", "false").equalsIgnoreCase("true")) {
-        repositories {
+    repositories {
+        if (publishUrl?.trim()) {
             maven {
                 url = publishUrl
                 credentials {
-                    username = publishUserName
-                    password = publishPassword
+                    username = findProperty("NEXUS_USERNAME")?.toString()
+                    password = findProperty("NEXUS_PASSWORD")?.toString()
                 }
             }
-            if (System.getProperty("useLocalMaven", "false").equalsIgnoreCase("true")) {
-                maven {
-                    url = "${rootProject.projectDir}/repo"
-                }
+        }
+        if ("true".equalsIgnoreCase(String.valueOf(findProperty("useLocalMaven")))) {
+            maven {
+                url = "${rootProject.projectDir}/repo"
             }
         }
     }
 }
-
-apply from: "$rootDir/gradle/publish-bintray.gradle"

@@ -49,7 +49,7 @@ public class StringFilterCommandTest extends BaseTest {
         Flag.RequiredFlagNotSetException flagsException = assertThrows(Flag.RequiredFlagNotSetException.class,
                 () -> StringFilterCommand.fromFlags(
                         new FlagParser().parse(
-                                "--bundle=" + loadResourcePath("demo/app.aab")
+                                "--bundle=" + loadResourcePath("demo/demo.aab")
                         )
                 ).execute());
         assertThat(flagsException)
@@ -73,7 +73,7 @@ public class StringFilterCommandTest extends BaseTest {
 
     @Test
     public void testPass() throws IOException, DocumentException, InterruptedException {
-        File rawAabFile = loadResourceFile("demo/app.aab");
+        File rawAabFile = loadResourceFile("demo/demo.aab");
         File outputFile = new File(getTempDirPath().toFile(), "filtered.aab");
         StringFilterCommand.fromFlags(
                 new FlagParser().parse(

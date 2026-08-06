@@ -1,61 +1,49 @@
 apply plugin: 'maven-publish'
 
-task sourcesJar(type: Jar) {
-    from sourceSets.main.java.srcDirs
+def sourcesJar = tasks.register('sourcesJar', Jar) {
+    from sourceSets.main.allSource
     archiveClassifier = 'sources'
-    version = versions[ARTIFACT_ID]
+    archiveVersion = versions[ARTIFACT_ID]
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
+def javadocJar = tasks.register('javadocJar', Jar) {
+    dependsOn tasks.named('javadoc')
     archiveClassifier = 'javadoc'
-    from javadoc.destinationDir
-    version = versions[ARTIFACT_ID]
+    from javadoc
+    archiveVersion = versions[ARTIFACT_ID]
 }
 
-def releasesRepoUrl = System.getProperty("RELEASE_REPOSITORY_URL")
-def snapshotsRepoUrl = System.getProperty("SNAPSHOT_REPOSITORY_URL")
+def releasesRepoUrl = findProperty("RELEASE_REPOSITORY_URL")?.toString()
+def snapshotsRepoUrl = findProperty("SNAPSHOT_REPOSITORY_URL")?.toString()
 def publishUrl = versions[ARTIFACT_ID].endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-def publishUserName = System.getProperty("NEXUS_USERNAME")
-def publishPassword = System.getProperty("NEXUS_PASSWORD")
-
-println "-------publish info---------"
-println "url: $publishUrl"
-println "username: $publishUserName"
-println "password: $publishPassword"
 
 publishing {
-    if (!System.getProperty("uploadToBintray", "false").equalsIgnoreCase("true")) {
-        repositories {
+    repositories {
+        if (publishUrl?.trim()) {
             maven {
                 url = publishUrl
                 credentials {
-                    username = publishUserName
-                    password = publishPassword
+                    username = findProperty("NEXUS_USERNAME")?.toString()
+                    password = findProperty("NEXUS_PASSWORD")?.toString()
                 }
             }
-            if (System.getProperty("useLocalMaven", "false").equalsIgnoreCase("true")) {
-                maven {
-                    url = "${rootProject.projectDir}/repo"
-                }
+        }
+        if ("true".equalsIgnoreCase(String.valueOf(findProperty("useLocalMaven")))) {
+            maven {
+                url = "${rootProject.projectDir}/repo"
             }
         }
     }
 
-    if (project.plugins.hasPlugin("java-library") || project.plugins.hasPlugin("java")) {
-        publications {
-            MyPublication(MavenPublication) {
-                from components.java
-                artifact sourcesJar
-                artifact javadocJar
+    publications {
+        MyPublication(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
 
-                groupId GROUP_ID
-                artifactId ARTIFACT_ID
-                version versions[ARTIFACT_ID]
-            }
+            groupId GROUP_ID
+            artifactId ARTIFACT_ID
+            version versions[ARTIFACT_ID]
         }
-    } else {
-        throw new GradleScriptException("java-library plugin required")
     }
 }
-
-apply from: "$rootDir/gradle/publish-bintray.gradle"

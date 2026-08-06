@@ -8,6 +8,7 @@ import com.bytedance.android.aabresguard.bundle.ResourcesTableBuilder;
 import com.bytedance.android.aabresguard.utils.TimeClock;
 import com.google.common.collect.ImmutableMap;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,7 +29,7 @@ import static com.android.tools.build.bundletool.model.utils.files.FilePrecondit
 /**
  * Created by jiangzilai on 2019-10-20.
  */
-public class BundleStringFilter {
+public class BundleStringFilter implements Closeable {
     private final ZipFile bundleZipFile;
     private final AppBundle rawAppBundle;
     private final String unusedStrPath;
@@ -46,13 +47,18 @@ public class BundleStringFilter {
         this.languageWhiteList = languageWhiteList;
     }
 
+    @Override
+    public void close() throws IOException {
+        bundleZipFile.close();
+    }
+
     public AppBundle filter() throws IOException {
         TimeClock timeClock = new TimeClock();
 
-        File unusedStrFile = new File(unusedStrPath);
+        File unusedStrFile = unusedStrPath == null ? null : new File(unusedStrPath);
         Map<BundleModuleName, BundleModule> obfuscatedModules = new HashMap<>();
 
-        if (unusedStrFile.exists()) {
+        if (unusedStrFile != null && unusedStrFile.exists()) {
             //shrink结果
             unUsedNameSet.addAll(Files.readAllLines(Paths.get(unusedStrPath)));
             System.out.println("无用字符串 : " + unUsedNameSet.size());
@@ -173,16 +179,12 @@ public class BundleStringFilter {
                 }
             }
             System.out.println("filtering " + resPackage.getPackageName() + " id:" + resPackage.getPackageId().getId());
-            StringBuilder l = new StringBuilder();
             for (String lan : languageFilterSet) {
-                l.append("[remove language] : ").append(lan).append("\n");
+                System.out.println("[remove language] : " + lan);
             }
-            System.out.println(l.toString());
-            l = new StringBuilder();
             for (String name : nameFilterList) {
-                l.append("[delete name] ").append(name).append("\n");
+                System.out.println("[delete name] " + name);
             }
-            System.out.println(l.toString());
             System.out.println("-----------");
             packageBuilder.build();
         }
