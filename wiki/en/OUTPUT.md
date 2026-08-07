@@ -27,9 +27,9 @@ res entries path mapping:
 	0x7f060022 : base/res/drawable-xxxhdpi-v4/abc_ic_star_half_black_16dp.png -> res/k/o.png
 ```
 
-- **res dir mapping：** The obfuscated rules for storing resource file directories. Format: dir -> dir (`res/` root directory can not be obfuscated)
+- **res dir mapping：** The obfuscated rules for storing resource file directories. Format: dir -> dir (`res/` root directory can not be obfuscated). When assets obfuscation is enabled, `assets/` directory rules are recorded here as well.
 - **res id mapping：** The obfuscated rules for storing resource names. Format: resourceId : resourceName -> resourceName (resourceId will not be read in increment obfuscating)
-- **res entries path mapping：** The obfuscated rules for storing resource file paths. Format: resourceId : path -> path (resourceId will not be read in obfuscating)
+- **res entries path mapping：** The obfuscated rules for storing resource file paths. Format: resourceId : path -> path (resourceId will not be read in obfuscating). Obfuscated asset files appear here with a `null` resourceId, e.g. `null : base/assets/data/demo.txt -> assets/a2/a3.txt`.
 
 ## -duplicated.txt
 Used to record the deduplicated resource files, the example is shown below:

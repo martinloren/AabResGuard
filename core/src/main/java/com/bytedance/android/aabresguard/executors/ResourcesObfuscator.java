@@ -238,21 +238,6 @@ public class ResourcesObfuscator implements Closeable {
                     guardStringBuilder.reset(null);
                     String entryDir = entry.getPath().getParent().toString();
                     String obfuscateDir = resourcesMapping.getDirMapping().get(entryDir);
-                    if (obfuscateDir == null && obfuscateAssets
-                            && entry.getPath().startsWith(BundleModule.ASSETS_DIRECTORY)) {
-                        // assets directories are not listed in the resource table,
-                        // generate the directory mapping on demand
-                        String name = guardStringBuilder.getReplaceString(resourcesMapping.getPathMappingNameList());
-                        obfuscateDir = BundleModule.ASSETS_DIRECTORY.toString() + "/" + name;
-                        resourcesMapping.putDirMapping(entryDir, obfuscateDir);
-                    }
-                    if (obfuscateDir == null) {
-                        throw new RuntimeException(String.format("can not find resource directory: %s", entryDir));
-                    }
-                    Set<String> mapping = typeMappingMap.get(obfuscateDir);
-                    if (mapping == null) {
-                        mapping = new HashSet<>();
-                    }
 
                     String bundleRawPath = bundleModule.getName().getName() + "/" + entry.getPath().toString();
                     String bundleObfuscatedPath = resourcesMapping.getEntryFilesMapping().get(bundleRawPath);
@@ -264,14 +249,30 @@ public class ResourcesObfuscator implements Closeable {
                                     bundleRawPath
                             ));
                             return;
-                        } else {
-                            String fileSuffix = FileOperation.getFileSuffix(entry.getPath());
-                            String obfuscatedName = guardStringBuilder.getReplaceString(mapping);
-                            mapping.add(obfuscatedName);
-                            bundleObfuscatedPath = obfuscateDir + "/" + obfuscatedName + fileSuffix;
-                            //System.out.println(" -> "+bundleObfuscatedPath);
-                            resourcesMapping.putEntryFileMapping(bundleRawPath, bundleObfuscatedPath);
                         }
+                        if (obfuscateDir == null) {
+                            if (obfuscateAssets && entry.getPath().startsWith(BundleModule.ASSETS_DIRECTORY)) {
+                                // assets directories are not listed in the resource table, generate
+                                // the directory mapping on demand — only once a file in it is really
+                                // renamed, so fully whitelisted directories never get a dead mapping
+                                String name = guardStringBuilder.getReplaceString(resourcesMapping.getPathMappingNameList());
+                                obfuscateDir = BundleModule.ASSETS_DIRECTORY.toString() + "/" + name;
+                                resourcesMapping.putDirMapping(entryDir, obfuscateDir);
+                            } else {
+                                throw new RuntimeException(String.format("can not find resource directory: %s", entryDir));
+                            }
+                        }
+                        Set<String> mapping = typeMappingMap.get(obfuscateDir);
+                        if (mapping == null) {
+                            mapping = new HashSet<>();
+                        }
+                        String fileSuffix = FileOperation.getFileSuffix(entry.getPath());
+                        String obfuscatedName = guardStringBuilder.getReplaceString(mapping);
+                        mapping.add(obfuscatedName);
+                        bundleObfuscatedPath = obfuscateDir + "/" + obfuscatedName + fileSuffix;
+                        //System.out.println(" -> "+bundleObfuscatedPath);
+                        resourcesMapping.putEntryFileMapping(bundleRawPath, bundleObfuscatedPath);
+                        typeMappingMap.put(obfuscateDir, mapping);
                     }
                     if (obfuscateEntries.values().contains(bundleObfuscatedPath)) {
                         throw new IllegalArgumentException(
@@ -280,7 +281,6 @@ public class ResourcesObfuscator implements Closeable {
                         );
                     }
                     obfuscateEntries.put(bundleRawPath, bundleObfuscatedPath);
-                    typeMappingMap.put(obfuscateDir, mapping);
                 });
         return obfuscateEntries;
     }
@@ -309,6 +309,12 @@ public class ResourcesObfuscator implements Closeable {
             }
         }
         builder.setRawEntries(obfuscateEntries);
+
+        // keep the assets targeting config in sync with the renamed directories,
+        // otherwise bundletool rejects the bundle ("Targeted directory ... is empty")
+        if (obfuscateAssets && bundleModule.getAssetsConfig().isPresent()) {
+            builder.setAssetsConfig(obfuscateAssetsConfig(bundleModule.getAssetsConfig().get()));
+        }
 
         // obfuscate resourceTable
         Resources.ResourceTable obfuscatedResTable = obfuscateResourceTable(bundleModule, obfuscatedEntryMap);
@@ -371,6 +377,23 @@ public class ResourcesObfuscator implements Closeable {
         });
 
         return resourcesTableBuilder.build();
+    }
+
+    /**
+     * Rewrite the targeted assets directories of the module targeting config
+     * with their obfuscated paths (directories that kept their path, e.g.
+     * whitelisted ones, are left untouched).
+     */
+    private com.android.bundle.Files.Assets obfuscateAssetsConfig(com.android.bundle.Files.Assets assetsConfig) {
+        com.android.bundle.Files.Assets.Builder builder = assetsConfig.toBuilder();
+        for (int i = 0; i < builder.getDirectoryCount(); i++) {
+            com.android.bundle.Files.TargetedAssetsDirectory directory = builder.getDirectory(i);
+            String obfuscatedDir = resourcesMapping.getDirMapping().get(directory.getPath());
+            if (obfuscatedDir != null) {
+                builder.setDirectory(i, directory.toBuilder().setPath(obfuscatedDir).build());
+            }
+        }
+        return builder.build();
     }
 
     private void checkResMappingRules() {

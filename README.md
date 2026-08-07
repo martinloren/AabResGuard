@@ -6,7 +6,7 @@
 
 [Download V.0.1.10](https://github.com/martinloren/mvn-repo/raw/main/AabResGuard_0.1.10.zip)
 
-[![License](https://img.shields.io/badge/license-Apache2.0-brightgreen)](LICENSE) [![Bundletool](https://img.shields.io/badge/Dependency-Bundletool/0.10.0-blue)](https://github.com/google/bundletool)
+[![License](https://img.shields.io/badge/license-Apache2.0-brightgreen)](LICENSE) [![Bundletool](https://img.shields.io/badge/Dependency-Bundletool/1.18.3-blue)](https://github.com/google/bundletool)
 
 **[English](README.md)** | [简体中文](wiki/zh-cn/README.md)
 
@@ -53,10 +53,17 @@ Configured in `build.gradle(application)`
 ```gradle
 apply plugin: "com.bytedance.android.aabResGuard"
 aabResGuard {
+    enableObfuscate = true // Obfuscate resource paths and names
+    //enableObfuscateAssets = true // Also obfuscate file names under assets/ (default: false).
+                                   // WARNING: assets are referenced by path at runtime, so every
+                                   // asset loaded via a path literal must be whitelisted below
+                                   // (e.g. "*/assets/fonts/*") or the app will crash.
     //mappingFile = file("mapping.txt").toPath() // Mapping file used for incremental obfuscation
     whiteList = [ // White list rules
         "*.R.raw.*",
         "*.R.drawable.icon",
+        // Assets loaded by path (only needed when enableObfuscateAssets = true)
+        // "*/assets/fonts/*",
         // Google-services & Firebase
         "*.R.string.google_app_id",
         "*.R.string.gcm_defaultSenderId",
@@ -93,8 +100,8 @@ The `aabResGuard plugin` intrudes the `bundle` packaging process and can be obfu
 
 Get the obfuscated `bundle` file path by `gradle` .
 ```groovy
-def aabResGuardPlugin = project.tasks.getByName("aabresguard${VARIANT_NAME}")
-Path bundlePath = aabResGuardPlugin.getObfuscatedBundlePath()
+def aabResGuardTask = project.tasks.named("aabresguard${VARIANT_NAME}")
+Path bundlePath = aabResGuardTask.get().obfuscatedBundleFile.get().asFile.toPath()
 ```
 
 ### [Whitelist](wiki/en/WHITELIST.md)

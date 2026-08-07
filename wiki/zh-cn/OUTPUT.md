@@ -27,9 +27,9 @@ res entries path mapping:
 	0x7f060022 : base/res/drawable-xxxhdpi-v4/abc_ic_star_half_black_16dp.png -> res/k/o.png
 ```
 
-- **res dir mapping：** 存储资源文件目录的混淆规则。格式：dir -> dir（`res/` 根目录不可以被混淆）
+- **res dir mapping：** 存储资源文件目录的混淆规则。格式：dir -> dir（`res/` 根目录不可以被混淆）。开启 assets 混淆后，`assets/` 目录的规则也会记录在这里。
 - **res id mapping：** 存储资源名称的混淆规则。格式：resourceId : resourceName -> resourceName（增量混淆时，resourceId 不会被读入）
-- **res entries path mapping：** 存储资源文件路径的混淆规则。格式：resourceId : path -> path（增量混淆时，resourceId 不会被读入）
+- **res entries path mapping：** 存储资源文件路径的混淆规则。格式：resourceId : path -> path（增量混淆时，resourceId 不会被读入）。被混淆的 asset 文件也会记录在这里，resourceId 为 `null`，例如 `null : base/assets/data/demo.txt -> assets/a2/a3.txt`。
 
 ## -duplicated.txt
 用于记录被去重的资源文件，示例如下：

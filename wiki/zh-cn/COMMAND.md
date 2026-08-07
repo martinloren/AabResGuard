@@ -41,11 +41,15 @@ aabresguard filter-file --bundle=app.aab --output=filtered.aab --config=config.x
 ```cmd
 aabresguard obfuscate-bundle --bundle=app.aab --output=obfuscated.aab --config=config.xml --mapping=mapping.txt
 --merge-duplicated-res=true
+--assets-obfuscate=true
 --storeFile=debug.store
 --storePassword=android
 --keyAlias=android
 --keyPassword=android
 ```
+
+可选参数：
+- `--assets-obfuscate=true` — 同时混淆 `assets/` 下的文件名。**请谨慎使用：** assets 在运行时通过路径引用（`AssetManager.open(...)`、`Typeface.createFromAsset(...)`、`file:///android_asset/...`、native 代码、JS 等），所有通过路径字面量加载的 asset 都必须加入白名单（如 `*/assets/fonts/*`），否则应用会在运行时崩溃。
 配置文件 `config.xml`，白名单支持`正则表达式`
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>

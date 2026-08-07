@@ -4,9 +4,8 @@
   <p align="center" style="font-size: 0.3em">针对 aab 文件的资源混淆工具</p>
 </h1>
 
-[ ![Download](https://api.bintray.com/packages/yeoh/maven/aabresguard-plugin/images/download.svg?version=0.1.4) ](https://bintray.com/yeoh/maven/aabresguard-plugin/0.1.4/link)
 [![License](https://img.shields.io/badge/license-Apache2.0-brightgreen)](../../LICENSE)
-[![Bundletool](https://img.shields.io/badge/Dependency-Bundletool/0.10.0-blue)](https://github.com/google/bundletool)
+[![Bundletool](https://img.shields.io/badge/Dependency-Bundletool/1.18.3-blue)](https://github.com/google/bundletool)
 
 [English](../../README.md) | **[简体中文](README.md)**
 
@@ -49,10 +48,17 @@ buildscript {
 ```gradle
 apply plugin: "com.bytedance.android.aabResGuard"
 aabResGuard {
+    enableObfuscate = true // 混淆资源路径与资源名称
+    //enableObfuscateAssets = true // 同时混淆 assets/ 下的文件名（默认关闭）。
+                                   // 警告：assets 在运行时通过路径引用，所有通过路径字面量
+                                   // 加载的 asset 都必须加入白名单（如 "*/assets/fonts/*"），
+                                   // 否则应用会在运行时崩溃。
     mappingFile = file("mapping.txt").toPath() // 用于增量混淆的 mapping 文件
     whiteList = [ // 白名单规则
         "*.R.raw.*",
         "*.R.drawable.icon"
+        // 通过路径加载的 assets（仅在 enableObfuscateAssets = true 时需要）
+        // "*/assets/fonts/*",
     ]
     obfuscatedBundleFileName = "duplicated-app.aab" // 混淆后的文件名称，必须以 `.aab` 结尾
     mergeDuplicatedRes = true // 是否允许去除重复资源
@@ -74,8 +80,8 @@ aabResGuard {
 
 通过 `gradle` 获取混淆后的 `bundle` 文件路径
 ```groovy
-def aabResGuardPlugin = project.tasks.getByName("aabresguard${VARIANT_NAME}")
-Path bundlePath = aabResGuardPlugin.getObfuscatedBundlePath()
+def aabResGuardTask = project.tasks.named("aabresguard${VARIANT_NAME}")
+Path bundlePath = aabResGuardTask.get().obfuscatedBundleFile.get().asFile.toPath()
 ```
 
 ### [白名单](../en/WHITELIST.md)
