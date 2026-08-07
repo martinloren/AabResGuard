@@ -49,6 +49,7 @@ public abstract class ObfuscateBundleCommand {
     private static final Flag<Path> MAPPING_FLAG = Flag.path("mapping");
 
     private static final Flag<Boolean> MERGE_DUPLICATED_RES_FLAG = Flag.booleanFlag("merge-duplicated-res");
+    private static final Flag<Boolean> OBFUSCATE_ASSETS_FLAG = Flag.booleanFlag("assets-obfuscate");
 
     private static final Flag<Boolean> DISABLE_SIGN_FLAG = Flag.booleanFlag("disable-sign");
     private static final Flag<Path> STORE_FILE_FLAG = Flag.path("storeFile");
@@ -96,6 +97,15 @@ public abstract class ObfuscateBundleCommand {
                                 .setExampleValue("merge-duplicated-res=true")
                                 .setOptional(true)
                                 .setDescription("If set, the duplicate resource files will be removed.")
+                                .build())
+                .addFlag(
+                        CommandHelp.FlagDescription.builder()
+                                .setFlagName(OBFUSCATE_ASSETS_FLAG.getName())
+                                .setExampleValue("assets-obfuscate=true")
+                                .setOptional(true)
+                                .setDescription("If set, file names under assets/ are obfuscated as well. " +
+                                        "Assets are referenced by path at runtime, so every asset loaded via a " +
+                                        "path literal must be added to the whitelist or the app will crash.")
                                 .build())
                 .addFlag(
                         CommandHelp.FlagDescription.builder()
@@ -159,6 +169,7 @@ public abstract class ObfuscateBundleCommand {
         builder.setOutputPath(OUTPUT_FILE_FLAG.getRequiredValue(flags));
 
         MERGE_DUPLICATED_RES_FLAG.getValue(flags).ifPresent(builder::setMergeDuplicatedResources);
+        OBFUSCATE_ASSETS_FLAG.getValue(flags).ifPresent(builder::setObfuscateAssets);
 
         DISABLE_SIGN_FLAG.getValue(flags).ifPresent(builder::setDisableSign);
         STORE_FILE_FLAG.getValue(flags).ifPresent(builder::setStoreFile);
@@ -218,7 +229,8 @@ public abstract class ObfuscateBundleCommand {
                 if (getMappingPath().isPresent()) {
                     mappingPath = getMappingPath().get();
                 }
-                try (ResourcesObfuscator obfuscator = new ResourcesObfuscator(getBundlePath(), appBundle, getWhiteList(), getOutputPath().getParent(), mappingPath)) {
+                try (ResourcesObfuscator obfuscator = new ResourcesObfuscator(getBundlePath(), appBundle, getWhiteList(), getOutputPath().getParent(), mappingPath,
+                        getObfuscateAssets().isPresent() && getObfuscateAssets().get())) {
                     appBundle = obfuscator.obfuscate();
                 }
             }
@@ -270,6 +282,8 @@ public abstract class ObfuscateBundleCommand {
 
     public abstract Optional<Boolean> getMergeDuplicatedResources();
 
+    public abstract Optional<Boolean> getObfuscateAssets();
+
     public abstract Optional<Boolean> getDisableSign();
 
     public abstract Set<String> getWhiteList();
@@ -308,6 +322,8 @@ public abstract class ObfuscateBundleCommand {
         public abstract Builder setMappingPath(Path configPath);
 
         public abstract Builder setMergeDuplicatedResources(Boolean mergeDuplicatedResources);
+
+        public abstract Builder setObfuscateAssets(Boolean obfuscateAssets);
 
         public abstract Builder setDisableSign(Boolean disableSign);
 

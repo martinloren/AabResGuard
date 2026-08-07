@@ -35,6 +35,9 @@ abstract class AabResGuardTask : DefaultTask() {
     @get:Input
     abstract val enableObfuscate: Property<Boolean>
 
+    @get:Input
+    abstract val enableObfuscateAssets: Property<Boolean>
+
     @get:InputFile
     @get:Optional
     @get:PathSensitive(PathSensitivity.NAME_ONLY)
@@ -99,6 +102,7 @@ abstract class AabResGuardTask : DefaultTask() {
 
         val command = ObfuscateBundleCommand.builder()
                 .setEnableObfuscate(enableObfuscate.get())
+                .setObfuscateAssets(enableObfuscateAssets.get())
                 .setBundlePath(bundleFile.get().asFile.toPath())
                 .setOutputPath(obfuscatedBundleFile.get().asFile.toPath())
                 .setMergeDuplicatedResources(mergeDuplicatedRes.get())
@@ -140,6 +144,7 @@ abstract class AabResGuardTask : DefaultTask() {
     private fun printExtensionConfiguration() {
         println("-------------- AabResGuardExtension --------------")
         println("\tenableObfuscate=${enableObfuscate.get()}")
+        println("\tenableObfuscateAssets=${enableObfuscateAssets.get()}")
         println("\tmappingFile=${if (mappingFile.isPresent) mappingFile.get().asFile.toPath() else null}")
         println("\twhiteList=${whiteList.get()}")
         println("\tobfuscatedBundleFileName=${obfuscatedBundleFile.get().asFile.name}")

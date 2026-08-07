@@ -61,9 +61,14 @@ public class ResourcesObfuscator implements Closeable {
     private final Set<Pattern> whiteListPatterns;
     private final Path outputMappingPath;
     private final ZipFile bundleZipFile;
+    private final boolean obfuscateAssets;
     private ResourcesMapping resourcesMapping;
 
     public ResourcesObfuscator(Path bundlePath, AppBundle rawAppBundle, Set<String> whiteListRules, Path outputLogLocationDir, Path mappingPath) throws IOException {
+        this(bundlePath, rawAppBundle, whiteListRules, outputLogLocationDir, mappingPath, false);
+    }
+
+    public ResourcesObfuscator(Path bundlePath, AppBundle rawAppBundle, Set<String> whiteListRules, Path outputLogLocationDir, Path mappingPath, boolean obfuscateAssets) throws IOException {
         if (mappingPath != null && mappingPath.toFile().exists()) {
             resourcesMapping = new ResourcesMappingParser(mappingPath).parse();
         } else {
@@ -80,6 +85,7 @@ public class ResourcesObfuscator implements Closeable {
         }
 
         this.rawAppBundle = rawAppBundle;
+        this.obfuscateAssets = obfuscateAssets;
         // precompile whitelist patterns once instead of per resource
         this.whiteListPatterns = whiteListRules.stream()
                 .map(rule -> Pattern.compile(Utils.convertToPatternString(rule)))
@@ -226,11 +232,20 @@ public class ResourcesObfuscator implements Closeable {
         Map<String, String> obfuscateEntries = new HashMap<>();
 
         bundleModule.getEntries().stream()
-                .filter(entry -> entry.getPath().startsWith(BundleModule.RESOURCES_DIRECTORY))
+                .filter(entry -> entry.getPath().startsWith(BundleModule.RESOURCES_DIRECTORY)
+                        || (obfuscateAssets && entry.getPath().startsWith(BundleModule.ASSETS_DIRECTORY)))
                 .forEach(entry -> {
                     guardStringBuilder.reset(null);
                     String entryDir = entry.getPath().getParent().toString();
                     String obfuscateDir = resourcesMapping.getDirMapping().get(entryDir);
+                    if (obfuscateDir == null && obfuscateAssets
+                            && entry.getPath().startsWith(BundleModule.ASSETS_DIRECTORY)) {
+                        // assets directories are not listed in the resource table,
+                        // generate the directory mapping on demand
+                        String name = guardStringBuilder.getReplaceString(resourcesMapping.getPathMappingNameList());
+                        obfuscateDir = BundleModule.ASSETS_DIRECTORY.toString() + "/" + name;
+                        resourcesMapping.putDirMapping(entryDir, obfuscateDir);
+                    }
                     if (obfuscateDir == null) {
                         throw new RuntimeException(String.format("can not find resource directory: %s", entryDir));
                     }
@@ -362,9 +377,10 @@ public class ResourcesObfuscator implements Closeable {
         resourcesMapping.getDirMapping().values().stream()
                 .map(ZipPath::create)
                 .forEach(path -> {
-                    if (!path.startsWith(BundleModule.RESOURCES_DIRECTORY)) {
+                    if (!path.startsWith(BundleModule.RESOURCES_DIRECTORY)
+                            && !path.startsWith(BundleModule.ASSETS_DIRECTORY)) {
                         throw new IllegalArgumentException(String.format(
-                                "Module files can be only in pre-defined directories, the mapping obfuscation rule is %s",
+                                "Module files can be only in pre-defined directories (res/ or assets/), the mapping obfuscation rule is %s",
                                 path
                         ));
                     }

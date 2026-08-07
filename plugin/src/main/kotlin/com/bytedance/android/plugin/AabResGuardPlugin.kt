@@ -42,6 +42,7 @@ class AabResGuardPlugin : Plugin<Project> {
             })
 
             task.enableObfuscate.set(aabResGuard.enableObfuscate)
+            task.enableObfuscateAssets.set(aabResGuard.enableObfuscateAssets)
             aabResGuard.mappingFile?.let { task.mappingFile.fileValue(it.toFile()) }
             task.whiteList.set(aabResGuard.whiteList ?: emptySet())
             task.mergeDuplicatedRes.set(aabResGuard.mergeDuplicatedRes)

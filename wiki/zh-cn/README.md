@@ -20,6 +20,7 @@
 - **白名单：** 白名单中的资源，名称不予混淆。
 - **增量混淆：** 输入 `mapping` 文件，支持增量混淆。
 - **文案删除：** 输入按行分割的字符串文件，移除文案及翻译。
+- **可选的 assets 混淆：** 通过 `enableObfuscateAssets = true`（插件）或 `--assets-obfuscate=true`（命令行）开启后，`assets/` 下的文件名也会被混淆。**默认关闭，请谨慎使用：** 与资源不同，assets 没有数字 ID 间接寻址——运行时通过路径字符串引用（`AssetManager.open(...)`、`Typeface.createFromAsset(...)`、WebView 的 `file:///android_asset/...`、native 代码、JS 等），且常常位于第三方库内部。所有通过路径字面量加载的 asset 都必须加入白名单（如 `*/assets/fonts/*`），否则应用会在运行时崩溃。
 - **？？？：** 展望未来，会有更多的特性支持，欢迎提交 PR & issue。
 
 ## [数据收益](DATA.md)

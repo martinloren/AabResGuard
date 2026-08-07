@@ -42,11 +42,15 @@ Resource aliasing of the input `aab` file, and outputting the obfuscated `aab` f
 ```cmd
 aabresguard obfuscate-bundle --bundle=app.aab --output=obfuscated.aab --config=config.xml --mapping=mapping.txt
 --merge-duplicated-res=true
+--assets-obfuscate=true
 --storeFile=debug.store
 --storePassword=android
 --keyAlias=android
 --keyPassword=android
 ```
+
+Optional flags:
+- `--assets-obfuscate=true` — also obfuscate file names under `assets/`. **Use with care:** assets are referenced by path at runtime (`AssetManager.open(...)`, `Typeface.createFromAsset(...)`, `file:///android_asset/...` URLs, native code, JS), so every asset loaded via a path literal must be covered by the whitelist (e.g. `*/assets/fonts/*`) or the app will crash at runtime.
 
 Configuration file `config.xml`, whitelist support `regular expressions`
 ```xml

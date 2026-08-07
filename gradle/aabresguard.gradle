@@ -5,6 +5,10 @@ if (!"true".equalsIgnoreCase(String.valueOf(findProperty("enableAabResGuardPlugi
 apply plugin: "com.bytedance.android.aabResGuard"
 aabResGuard {
     enableObfuscate = true
+    // Opt-in: also obfuscate file names under assets/. Assets are referenced by
+    // path at runtime, so every asset loaded via a path literal MUST be
+    // whitelisted below or the app will crash at runtime.
+    enableObfuscateAssets = true
     mappingFile = file("../mapping.txt").toPath()
     whiteList = [
             // keep resources
@@ -15,6 +19,8 @@ aabResGuard {
             "*.R.xml.actions",
             // keep resource file
             "*/res/xml/actions.xml",
+            // keep asset files: the icon font libraries load these TTFs by path
+            "*/assets/fonts/*",
     ]
     obfuscatedBundleFileName = "obfuscated-app.aab"
     mergeDuplicatedRes = false

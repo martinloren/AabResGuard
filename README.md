@@ -15,11 +15,13 @@
 ## Features
 > The tool of obfuscated aab resources.
 
+- **Obfuscate resource paths and names:** Both resource file paths (`res/layout/main.xml` → `res/a/b.xml`) and resource entry names (`string/app_name` → `string/a`) are obfuscated in the resource table, so the `resources.arsc` of APKs generated from the obfuscated bundle no longer contains readable resource names. Note: APKs must be generated from the **obfuscated** bundle (e.g. via `bundletool build-apks` or Play); APKs built directly with `assembleRelease` are never processed.
 - **Merge duplicated resources:** Consolidate duplicate resource files to reduce package size.
 - **Filter bundle files:** Support for filtering files in the `bundle` package. Currently only supports filtering in the `MATE-INFO/` and `lib/` paths.
 - **White list:** The resources in the whitelist are not to be obfuscated.
 - **Incremental obfuscation:** Input the `mapping` file to support incremental obfuscation.
 - **Remove string:** Input the unused file splits by lines to support remove strings.
+- **Opt-in assets obfuscation:** with `enableObfuscateAssets = true` (plugin) or `--assets-obfuscate=true` (CLI), file names under `assets/` are obfuscated too. **Off by default and use with care:** unlike resources, assets have no numeric-ID indirection — they are referenced at runtime by their path string (`AssetManager.open(...)`, `Typeface.createFromAsset(...)`, `WebView` `file:///android_asset/...`, native code, JS, ...), often inside third-party libraries. Every asset loaded via a path literal must be whitelisted (e.g. `*/assets/fonts/*`) or the app will crash at runtime.
 - **???:** Looking ahead, there will be more feature support, welcome to submit PR & issue.
 
 ## [Data of size savings](wiki/en/DATA.md)
