@@ -18,6 +18,8 @@ open class AabResGuardExtension {
     var enableFilterStrings: Boolean = false
     var unusedStringPath: String? = ""
     var languageWhiteList: Set<String>? = HashSet()
+    var buildUniversalApk: Boolean = true
+    var universalApkFileName: String = "universal.apk"
 
     override fun toString(): String {
         return "-------------- AabResGuardExtension --------------\n" +

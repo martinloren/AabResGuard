@@ -5,6 +5,7 @@ import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.ApplicationVariant
 import com.android.build.api.variant.impl.SigningConfigImpl
 import com.bytedance.android.plugin.extensions.AabResGuardExtension
+import com.bytedance.android.plugin.tasks.AabResGuardBuildUniversalApkTask
 import com.bytedance.android.plugin.tasks.AabResGuardTask
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
@@ -36,10 +37,13 @@ class AabResGuardPlugin : Plugin<Project> {
             // package<Variant>Bundle / sign<Variant>Bundle tasks; wiring it as an input
             // also carries the dependency on those tasks.
             task.bundleFile.set(variant.artifacts.get(SingleArtifact.BUNDLE))
-            // The obfuscated bundle is placed next to the final bundle file.
-            task.obfuscatedBundleFile.fileProvider(task.bundleFile.map { bundle ->
-                bundle.asFile.parentFile.resolve(obfuscatedBundleFileName)
-            })
+            // Place the obfuscated bundle in the variant's bundle output directory.
+            // We intentionally do NOT derive the path from bundleFile, because reading
+            // that provider to compute an output location would force it to be resolved
+            // before the sign/packaging task that produces it has finished.
+            task.obfuscatedBundleFile.set(
+                project.layout.buildDirectory.file("outputs/bundle/${variant.name}/$obfuscatedBundleFileName")
+            )
 
             task.enableObfuscate.set(aabResGuard.enableObfuscate)
             task.enableObfuscateAssets.set(aabResGuard.enableObfuscateAssets)
@@ -70,6 +74,28 @@ class AabResGuardPlugin : Plugin<Project> {
         // The bundle<Variant> lifecycle task depends on the obfuscation task.
         project.tasks.matching { it.name == "bundle$variantName" }.configureEach {
             it.dependsOn(aabResGuardTask)
+        }
+
+        // Optionally build a universal APK from the obfuscated AAB and wire it into
+        // assemble<Variant> so that APK builds also produce an obfuscated universal APK.
+        if (aabResGuard.buildUniversalApk) {
+            val universalApkTask = project.tasks.register("aabresguardBuildUniversalApk$variantName", AabResGuardBuildUniversalApkTask::class.java) { task ->
+                task.bundleFile.set(aabResGuardTask.flatMap { it.obfuscatedBundleFile })
+                task.universalApkFile.set(
+                    project.layout.buildDirectory.file("outputs/apk/${variant.name}/${aabResGuard.universalApkFileName}")
+                )
+                // Re-use the same signing configuration so the universal APK is signed
+                // with the release key, not bundletool's default debug keystore.
+                (variant.signingConfig as? SigningConfigImpl)?.let { signingConfig ->
+                    task.storeFile.fileProvider(signingConfig.storeFile)
+                    task.storePassword.set(signingConfig.storePassword)
+                    task.keyAlias.set(signingConfig.keyAlias)
+                    task.keyPassword.set(signingConfig.keyPassword)
+                }
+            }
+            project.tasks.matching { it.name == "assemble$variantName" }.configureEach {
+                it.dependsOn(universalApkTask)
+            }
         }
     }
 
