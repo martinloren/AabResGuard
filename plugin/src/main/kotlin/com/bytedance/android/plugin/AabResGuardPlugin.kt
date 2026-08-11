@@ -22,11 +22,11 @@ class AabResGuardPlugin : Plugin<Project> {
         val aabResGuard = project.extensions.create("aabResGuard", AabResGuardExtension::class.java)
         val androidComponents = project.extensions.getByType(ApplicationAndroidComponentsExtension::class.java)
         androidComponents.onVariants { variant ->
-            registerAabResGuardTask(project, variant, aabResGuard)
+            registerAabResGuardTask(project, androidComponents, variant, aabResGuard)
         }
     }
 
-    private fun registerAabResGuardTask(project: Project, variant: ApplicationVariant, aabResGuard: AabResGuardExtension) {
+    private fun registerAabResGuardTask(project: Project, androidComponents: ApplicationAndroidComponentsExtension, variant: ApplicationVariant, aabResGuard: AabResGuardExtension) {
         val variantName = variant.name.replaceFirstChar { it.uppercase() }
         // Read eagerly so the provider closure below only captures a plain String
         // (configuration-cache friendly).
@@ -92,6 +92,7 @@ class AabResGuardPlugin : Plugin<Project> {
                     task.keyAlias.set(signingConfig.keyAlias)
                     task.keyPassword.set(signingConfig.keyPassword)
                 }
+                resolveAapt2Path(androidComponents)?.let { task.aapt2Path.set(it) }
             }
             project.tasks.matching { it.name == "assemble$variantName" }.configureEach {
                 it.dependsOn(universalApkTask)
@@ -103,5 +104,28 @@ class AabResGuardPlugin : Plugin<Project> {
         if (!project.plugins.hasPlugin("com.android.application")) {
             throw GradleException("Android Application plugin required")
         }
+    }
+
+    /**
+     * Locate the latest aapt2 binary under the Android SDK build-tools directory.
+     * Bundletool needs an external aapt2 on Windows because it cannot extract the
+     * embedded one from the jar reliably.
+     */
+    private fun resolveAapt2Path(androidComponents: ApplicationAndroidComponentsExtension): String? {
+        val sdkDir = try {
+            androidComponents.sdkComponents.sdkDirectory.get().asFile
+        } catch (e: Exception) {
+            println("Could not resolve Android SDK directory for aapt2: ${e.message}")
+            return null
+        }
+        val buildToolsDir = sdkDir.resolve("build-tools")
+        val isWindows = System.getProperty("os.name")?.lowercase()?.contains("windows") == true
+        val binaryName = if (isWindows) "aapt2.exe" else "aapt2"
+        val candidates = buildToolsDir.listFiles()
+                ?.filter { it.isDirectory }
+                ?.map { it.resolve(binaryName) }
+                ?.filter { it.exists() }
+                ?: emptyList()
+        return candidates.maxByOrNull { it.parentFile.name }?.absolutePath
     }
 }

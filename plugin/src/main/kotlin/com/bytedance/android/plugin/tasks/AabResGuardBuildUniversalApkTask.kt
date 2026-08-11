@@ -42,6 +42,10 @@ abstract class AabResGuardBuildUniversalApkTask : DefaultTask() {
     @get:Optional
     abstract val keyPassword: Property<String>
 
+    @get:Input
+    @get:Optional
+    abstract val aapt2Path: Property<String>
+
     init {
         description = "Build a universal APK from the obfuscated AAB"
         group = "assemble"
@@ -67,6 +71,9 @@ abstract class AabResGuardBuildUniversalApkTask : DefaultTask() {
         }
         if (keyPassword.isPresent) {
             command.setKeyPassword(keyPassword.get())
+        }
+        if (aapt2Path.isPresent) {
+            command.setAapt2Path(aapt2Path.get())
         }
         command.build().execute()
     }

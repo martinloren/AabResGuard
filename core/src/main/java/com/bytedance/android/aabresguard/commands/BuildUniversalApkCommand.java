@@ -28,15 +28,18 @@ public class BuildUniversalApkCommand {
     private final String storePassword;
     private final String keyAlias;
     private final String keyPassword;
+    private final String aapt2Path;
 
     private BuildUniversalApkCommand(Path bundlePath, Path outputApkPath, Path storeFile,
-                                       String storePassword, String keyAlias, String keyPassword) {
+                                       String storePassword, String keyAlias, String keyPassword,
+                                       String aapt2Path) {
         this.bundlePath = bundlePath;
         this.outputApkPath = outputApkPath;
         this.storeFile = storeFile;
         this.storePassword = storePassword;
         this.keyAlias = keyAlias;
         this.keyPassword = keyPassword;
+        this.aapt2Path = aapt2Path;
     }
 
     public static Builder builder() {
@@ -54,6 +57,9 @@ public class BuildUniversalApkCommand {
             flagList.add("--bundle=" + bundlePath.toFile().getAbsolutePath());
             flagList.add("--output=" + tempApks.toFile().getAbsolutePath());
             flagList.add("--mode=universal");
+            if (aapt2Path != null && !aapt2Path.isEmpty()) {
+                flagList.add("--aapt2=" + aapt2Path);
+            }
             if (storeFile != null && Files.exists(storeFile)) {
                 flagList.add("--ks=" + storeFile.toFile().getAbsolutePath());
                 if (storePassword != null) {
@@ -94,6 +100,7 @@ public class BuildUniversalApkCommand {
         private String storePassword;
         private String keyAlias;
         private String keyPassword;
+        private String aapt2Path;
 
         public Builder setBundlePath(Path bundlePath) {
             this.bundlePath = bundlePath;
@@ -125,6 +132,11 @@ public class BuildUniversalApkCommand {
             return this;
         }
 
+        public Builder setAapt2Path(String aapt2Path) {
+            this.aapt2Path = aapt2Path;
+            return this;
+        }
+
         public BuildUniversalApkCommand build() {
             if (bundlePath == null) {
                 throw new IllegalArgumentException("bundlePath is required");
@@ -133,7 +145,7 @@ public class BuildUniversalApkCommand {
                 throw new IllegalArgumentException("outputApkPath is required");
             }
             return new BuildUniversalApkCommand(bundlePath, outputApkPath, storeFile,
-                    storePassword, keyAlias, keyPassword);
+                    storePassword, keyAlias, keyPassword, aapt2Path);
         }
     }
 
