@@ -25,3 +25,19 @@ this includes assets loaded by third-party libraries:
 # e.g. a WebView page referencing other assets relatively
 */assets/web/*
 ```
+
+## Class names (only when class-name obfuscation is enabled)
+When `classObfuscation { isActive = true }` / `<class-obfuscation isactive="true">` is on, the
+whitelist matches **fully-qualified class names** (e.g. `com.example.MainActivity`).
+**Always whitelist** classes whose names must remain stable at runtime:
+- Android components declared in `AndroidManifest.xml` (`Application`, `Activity`, `Service`, `Receiver`, `Provider`).
+- Custom views inflated by class name from XML (if not matched by the rule, they are already safe).
+- Classes accessed by reflection (`Class.forName(...)`, JSON parsers, dependency injection, ...).
+- Classes referenced from native code or JS bridges.
+
+Example:
+```
+com.example.Application
+com.example.MainActivity
+com.example.*ViewThatIsReflected*
+```

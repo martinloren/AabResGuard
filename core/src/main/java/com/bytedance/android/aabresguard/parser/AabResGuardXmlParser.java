@@ -66,6 +66,9 @@ public class AabResGuardXmlParser {
         // string filter
         aabResGuardConfig.setStringFilterConfig(new StringFilterXmlParser(configPath).parse());
 
+        // class obfuscation
+        aabResGuardConfig.setClassObfuscationConfig(new ClassObfuscationXmlParser(configPath).parse());
+
         return aabResGuardConfig;
     }
 }

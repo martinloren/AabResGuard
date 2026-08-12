@@ -56,6 +56,11 @@ class AabResGuardPlugin : Plugin<Project> {
             aabResGuard.unusedStringPath?.let { task.unusedStringPath.set(it) }
             task.languageWhiteList.set(aabResGuard.languageWhiteList ?: emptySet())
 
+            task.classObfuscationActive.set(aabResGuard.classObfuscation.isActive)
+            task.classObfuscationRules.set(aabResGuard.classObfuscation.rules ?: emptySet())
+            task.classObfuscationWhitelist.set(aabResGuard.classObfuscation.whitelist ?: emptySet())
+            aabResGuard.classObfuscation.mappingFile?.let { task.classObfuscationMappingFile.fileValue(it.toFile()) }
+
             // shrinkResources unused.txt location for this variant (may not exist).
             val simpleName = variant.name.replace("Release", "")
             val unusedResName = simpleName.replaceFirstChar { it.lowercase() }

@@ -1,6 +1,7 @@
 package com.bytedance.android.plugin.tasks
 
 import com.bytedance.android.aabresguard.commands.ObfuscateBundleCommand
+import com.bytedance.android.aabresguard.model.xml.ClassObfuscationConfig
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
@@ -65,6 +66,20 @@ abstract class AabResGuardTask : DefaultTask() {
     @get:Input
     abstract val languageWhiteList: SetProperty<String>
 
+    @get:Input
+    abstract val classObfuscationActive: Property<Boolean>
+
+    @get:Input
+    abstract val classObfuscationRules: SetProperty<String>
+
+    @get:Input
+    abstract val classObfuscationWhitelist: SetProperty<String>
+
+    @get:InputFile
+    @get:Optional
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val classObfuscationMappingFile: RegularFileProperty
+
     /** shrinkResources unused.txt location; existence is checked at execution time. */
     @get:Internal
     abstract val shrinkUnusedResourcesFile: RegularFileProperty
@@ -112,8 +127,13 @@ abstract class AabResGuardTask : DefaultTask() {
                 .setRemoveStr(enableFilterStrings.get())
                 .setUnusedStrPath(effectiveUnusedStringPath)
                 .setLanguageWhiteList(languageWhiteList.get())
+                .setClassObfuscationConfig(buildClassObfuscationConfig())
         if (mappingFile.isPresent) {
             command.setMappingPath(mappingFile.get().asFile.toPath())
+        }
+
+        if (classObfuscationMappingFile.isPresent) {
+            command.setClassMappingPath(classObfuscationMappingFile.get().asFile.toPath())
         }
 
         val signingStoreFile = if (storeFile.isPresent) storeFile.get().asFile else null
@@ -141,6 +161,14 @@ abstract class AabResGuardTask : DefaultTask() {
         return unusedStringPath.orNull
     }
 
+    private fun buildClassObfuscationConfig(): ClassObfuscationConfig {
+        val config = ClassObfuscationConfig()
+        config.isActive = classObfuscationActive.get()
+        classObfuscationRules.get().forEach { config.addRule(it) }
+        classObfuscationWhitelist.get().forEach { config.addWhitelist(it) }
+        return config
+    }
+
     private fun printExtensionConfiguration() {
         println("-------------- AabResGuardExtension --------------")
         println("\tenableObfuscate=${enableObfuscate.get()}")
@@ -154,6 +182,10 @@ abstract class AabResGuardTask : DefaultTask() {
         println("\tenableFilterStrings=${enableFilterStrings.get()}")
         println("\tunusedStringPath=${unusedStringPath.orNull}")
         println("\tlanguageWhiteList=${languageWhiteList.get()}")
+        println("\tclassObfuscationActive=${classObfuscationActive.orNull}")
+        println("\tclassObfuscationRules=${classObfuscationRules.orNull}")
+        println("\tclassObfuscationWhitelist=${classObfuscationWhitelist.orNull}")
+        println("\tclassObfuscationMappingFile=${if (classObfuscationMappingFile.isPresent) classObfuscationMappingFile.get().asFile.toPath() else null}")
     }
 
     private fun printSignConfiguration() {

@@ -10,8 +10,17 @@ import java.util.Set;
 public class AabResGuardConfig {
     private FileFilterConfig fileFilter;
     private StringFilterConfig stringFilterConfig;
+    private ClassObfuscationConfig classObfuscationConfig;
     private boolean useWhiteList;
     private Set<String> whiteList = new HashSet<>();
+
+    public ClassObfuscationConfig getClassObfuscationConfig() {
+        return classObfuscationConfig;
+    }
+
+    public void setClassObfuscationConfig(ClassObfuscationConfig classObfuscationConfig) {
+        this.classObfuscationConfig = classObfuscationConfig;
+    }
 
 
     public FileFilterConfig getFileFilter() {

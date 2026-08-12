@@ -31,6 +31,17 @@ res entries path mapping:
 - **res id mapping：** The obfuscated rules for storing resource names. Format: resourceId : resourceName -> resourceName (resourceId will not be read in increment obfuscating)
 - **res entries path mapping：** The obfuscated rules for storing resource file paths. Format: resourceId : path -> path (resourceId will not be read in obfuscating). Obfuscated asset files appear here with a `null` resourceId, e.g. `null : base/assets/data/demo.txt -> assets/a2/a3.txt`.
 
+## class-mapping.txt
+When class-name obfuscation is enabled, a mapping file is written for the renamed classes:
+
+```txt
+class mapping:
+	com.example.widget.ChannelScopeView -> com.example.widget.a
+	com.example.widget.AnotherCustomView -> com.example.widget.b
+```
+
+The file can be passed back as `--class-mapping` (CLI) or `classObfuscation.mappingFile` (Gradle plugin) to keep names stable across incremental builds.
+
 ## -duplicated.txt
 Used to record the deduplicated resource files, the example is shown below:
 

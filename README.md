@@ -22,6 +22,7 @@
 - **Incremental obfuscation:** Input the `mapping` file to support incremental obfuscation.
 - **Remove string:** Input the unused file splits by lines to support remove strings.
 - **Opt-in assets obfuscation:** with `enableObfuscateAssets = true` (plugin) or `--assets-obfuscate=true` (CLI), file names under `assets/` are obfuscated too. **Off by default and use with care:** unlike resources, assets have no numeric-ID indirection — they are referenced at runtime by their path string (`AssetManager.open(...)`, `Typeface.createFromAsset(...)`, `WebView` `file:///android_asset/...`, native code, JS, ...), often inside third-party libraries. Every asset loaded via a path literal must be whitelisted (e.g. `*/assets/fonts/*`) or the app will crash at runtime.
+- **Class-name obfuscation for custom views:** Optionally rename selected fully-qualified class names (e.g. custom views) in the compiled DEX files and in binary XML layouts. Use `classObfuscation { ... }` (plugin) or the `<class-obfuscation>` config (CLI). A whitelist is mandatory for classes that must keep their names (Activities, Services, Application class, manifest-referenced classes, classes accessed via reflection, etc.).
 - **???:** Looking ahead, there will be more feature support, welcome to submit PR & issue.
 
 ## [Data of size savings](wiki/en/DATA.md)
@@ -90,6 +91,19 @@ aabResGuard {
     enableFilterStrings = false // switch of filter strings
     unusedStringPath = file("unused.txt").toPath() // strings will be filtered in this file
     languageWhiteList = ["en", "zh"] // keep en,en-xx,zh,zh-xx etc. remove others.
+
+    classObfuscation {
+        isActive = false // Set true to enable class-name obfuscation for custom views.
+        rules = [ // Classes matching these globs are renamed.
+            "com.example.widget.*"
+        ]
+        whitelist = [ // Classes that MUST keep their original names.
+            "com.example.MainActivity",
+            "com.example.Application",
+            "com.example.widget.*ViewThatIsReflected*"
+        ]
+        // mappingFile = file("class-mapping.txt").toPath() // Optional input for stable names
+    }
 }
 ```
 
@@ -113,6 +127,7 @@ The resources that can not be confused. Welcome PR your configs which is not inc
 ### [Output](wiki/en/OUTPUT.md)
 After the packaging is completed, the obfuscated file and the log files will be output. More details, please go to **[Output File](wiki/en/OUTPUT.md)**.
 - **resources-mapping.txt:** Resource obfuscation mapping, which can be used as the next obfuscation input to achieve incremental obfuscate.
+- **class-mapping.txt:** Class-name obfuscation mapping (only when class obfuscation is enabled). Can be supplied as `classObfuscation.mappingFile` to keep names stable across builds.
 - **aab:** Optimized aab file.
 - **-duplicated.txt:** duplicated file logging.
 

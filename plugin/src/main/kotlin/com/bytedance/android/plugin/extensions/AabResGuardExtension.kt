@@ -1,5 +1,7 @@
 package com.bytedance.android.plugin.extensions
 
+import org.gradle.api.Action
+
 import java.nio.file.Path
 
 /**
@@ -20,6 +22,11 @@ open class AabResGuardExtension {
     var languageWhiteList: Set<String>? = HashSet()
     var buildUniversalApk: Boolean = true
     var universalApkFileName: String = "universal.apk"
+    val classObfuscation: ClassObfuscationExtension = ClassObfuscationExtension()
+
+    fun classObfuscation(action: Action<ClassObfuscationExtension>) {
+        action.execute(classObfuscation)
+    }
 
     override fun toString(): String {
         return "-------------- AabResGuardExtension --------------\n" +
@@ -33,6 +40,7 @@ open class AabResGuardExtension {
                 "\tfilterList=$filterList\n" +
                 "\tenableFilterStrings=$enableFilterStrings\n" +
                 "\tunusedStringPath=$unusedStringPath\n" +
-                "\tlanguageWhiteList=$languageWhiteList"
+                "\tlanguageWhiteList=$languageWhiteList\n" +
+                "\tclassObfuscation=$classObfuscation"
     }
 }

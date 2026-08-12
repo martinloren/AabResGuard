@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resproguard>
+    <issue id="whitelist" isactive="true">
+        <path value="com.bytedance.android.ugc.aweme.R.raw.*" />
+        <path value="*.R.drawable.icon" />
+        <path value="*.R.mipmap.ic_launcher" />
+    </issue>
+    <class-obfuscation isactive="true">
+        <rule value="com.ss.android.ugc.model.*" />
+        <whitelist value="*.R*" />
+    </class-obfuscation>
+    <filter-str isactive="true">
+        <path value="unused.txt" />
+        <language value="en" />
+        <language value="zh" />
+    </filter-str>
+    <filter isactive="false">
+        <rule value="*/arm64-v8a/*" />
+        <rule value="META-INF/*.RSA" />
+    </filter>
+</resproguard>

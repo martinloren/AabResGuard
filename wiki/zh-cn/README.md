@@ -20,6 +20,7 @@
 - **增量混淆：** 输入 `mapping` 文件，支持增量混淆。
 - **文案删除：** 输入按行分割的字符串文件，移除文案及翻译。
 - **可选的 assets 混淆：** 通过 `enableObfuscateAssets = true`（插件）或 `--assets-obfuscate=true`（命令行）开启后，`assets/` 下的文件名也会被混淆。**默认关闭，请谨慎使用：** 与资源不同，assets 没有数字 ID 间接寻址——运行时通过路径字符串引用（`AssetManager.open(...)`、`Typeface.createFromAsset(...)`、WebView 的 `file:///android_asset/...`、native 代码、JS 等），且常常位于第三方库内部。所有通过路径字面量加载的 asset 都必须加入白名单（如 `*/assets/fonts/*`），否则应用会在运行时崩溃。
+- **类名混淆（自定义 View）：** 可选地对指定完整类名（例如自定义 View）在编译后的 DEX 与二进制 XML 布局中进行重命名。通过 `classObfuscation { ... }`（插件）或 `<class-obfuscation>`（命令行）配置。必须将运行时依赖原名的类（Activity、Service、Application、manifest 声明的类、反射使用的类等）加入白名单。
 - **？？？：** 展望未来，会有更多的特性支持，欢迎提交 PR & issue。
 
 ## [数据收益](DATA.md)
@@ -70,6 +71,19 @@ aabResGuard {
     enableFilterStrings = false // 过滤文案
     unusedStringPath = file("unused.txt").toPath() // 过滤文案列表路径 默认在mapping同目录查找
     languageWhiteList = ["en", "zh"] // 保留en,en-xx,zh,zh-xx等语言，其余均删除
+
+    classObfuscation {
+        isActive = false // 设为 true 开启自定义 View 等类名混淆
+        rules = [ // 匹配这些通配符的完整类名会被重命名
+            "com.example.widget.*"
+        ]
+        whitelist = [ // 必须保留原名的类（Activity、manifest 类、反射使用类等）
+            "com.example.MainActivity",
+            "com.example.Application",
+            "com.example.widget.*ViewThatIsReflected*"
+        ]
+        // mappingFile = file("class-mapping.txt").toPath() // 可选：用于稳定命名的输入 mapping
+    }
 }
 ```
 
@@ -93,6 +107,7 @@ Path bundlePath = aabResGuardTask.get().obfuscatedBundleFile.get().asFile.toPath
 ### [输出文件](OUTPUT.md)
 在打包完成后会输出混淆后的文件和相应的日志文件，详细信息请移步 **[输出文件](OUTPUT.md)** 。
 - **resources-mapping.txt：** 资源混淆 mapping，可作为下次混淆输入以达到增量混淆的目的。
+- **class-mapping.txt：** 类名混淆 mapping（仅在开启类名混淆时输出）。可作为 `classObfuscation.mappingFile` 传入以保持增量构建命名稳定。
 - **aab：** 优化后的 aab 文件。
 - **-duplicated.txt：** 被去重的文件日志记录。
 

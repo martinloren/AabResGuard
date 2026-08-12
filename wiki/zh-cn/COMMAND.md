@@ -50,6 +50,8 @@ aabresguard obfuscate-bundle --bundle=app.aab --output=obfuscated.aab --config=c
 
 可选参数：
 - `--assets-obfuscate=true` — 同时混淆 `assets/` 下的文件名。**请谨慎使用：** assets 在运行时通过路径引用（`AssetManager.open(...)`、`Typeface.createFromAsset(...)`、`file:///android_asset/...`、native 代码、JS 等），所有通过路径字面量加载的 asset 都必须加入白名单（如 `*/assets/fonts/*`），否则应用会在运行时崩溃。
+- `--class-mapping=class-mapping.txt` — 已有的 class-name mapping 文件路径。如果存在，会复用其中的映射；最终映射始终会输出到输出目录的 `class-mapping.txt`。
+
 配置文件 `config.xml`，白名单支持`正则表达式`
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -57,6 +59,13 @@ aabresguard obfuscate-bundle --bundle=app.aab --output=obfuscated.aab --config=c
     <issue id="whitelist" isactive="true">
         <path value="com.ss.android.ugc.aweme.R.raw.*" />
     </issue>
+    <class-obfuscation isactive="true">
+        <!-- 重命名 DEX 与二进制 XML 布局中匹配的完整类名 -->
+        <rule value="com.example.widget.*" />
+        <!-- 必须保留原名的类（Activity、manifest 类、反射使用类，……） -->
+        <whitelist value="com.example.MainActivity" />
+        <whitelist value="com.example.Application" />
+    </class-obfuscation>
     <filter isactive="false">
         <rule value="*/arm64-v8a/*" />
         <rule value="META-INF/*.RSA" />

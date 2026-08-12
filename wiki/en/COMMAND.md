@@ -51,6 +51,7 @@ aabresguard obfuscate-bundle --bundle=app.aab --output=obfuscated.aab --config=c
 
 Optional flags:
 - `--assets-obfuscate=true` — also obfuscate file names under `assets/`. **Use with care:** assets are referenced by path at runtime (`AssetManager.open(...)`, `Typeface.createFromAsset(...)`, `file:///android_asset/...` URLs, native code, JS), so every asset loaded via a path literal must be covered by the whitelist (e.g. `*/assets/fonts/*`) or the app will crash at runtime.
+- `--class-mapping=class-mapping.txt` — path to an existing class-name mapping file. If it exists, its mappings are reused; the final mapping is always written to `class-mapping.txt` in the output directory.
 
 Configuration file `config.xml`, whitelist support `regular expressions`
 ```xml
@@ -59,6 +60,13 @@ Configuration file `config.xml`, whitelist support `regular expressions`
     <issue id="whitelist" isactive="true">
         <path value="com.ss.android.ugc.aweme.R.raw.*" />
     </issue>
+    <class-obfuscation isactive="true">
+        <!-- Rename matching fully-qualified class names in DEX and binary XML layouts -->
+        <rule value="com.example.widget.*" />
+        <!-- Classes that must keep their names (Activities, manifest classes, reflection, ...) -->
+        <whitelist value="com.example.MainActivity" />
+        <whitelist value="com.example.Application" />
+    </class-obfuscation>
     <filter isactive="false">
         <rule value="*/arm64-v8a/*" />
         <rule value="META-INF/*.RSA" />

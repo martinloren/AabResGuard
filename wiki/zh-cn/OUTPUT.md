@@ -31,6 +31,17 @@ res entries path mapping:
 - **res id mapping：** 存储资源名称的混淆规则。格式：resourceId : resourceName -> resourceName（增量混淆时，resourceId 不会被读入）
 - **res entries path mapping：** 存储资源文件路径的混淆规则。格式：resourceId : path -> path（增量混淆时，resourceId 不会被读入）。被混淆的 asset 文件也会记录在这里，resourceId 为 `null`，例如 `null : base/assets/data/demo.txt -> assets/a2/a3.txt`。
 
+## class-mapping.txt
+当开启类名混淆时，会输出重命名后的 class mapping 文件：
+
+```txt
+class mapping:
+	com.example.widget.ChannelScopeView -> com.example.widget.a
+	com.example.widget.AnotherCustomView -> com.example.widget.b
+```
+
+该文件可以作为 `--class-mapping`（命令行）或 `classObfuscation.mappingFile`（Gradle 插件）传入，以在增量构建中保持名称稳定。
+
 ## -duplicated.txt
 用于记录被去重的资源文件，示例如下：
 

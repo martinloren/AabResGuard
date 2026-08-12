@@ -11,8 +11,10 @@ import com.bytedance.android.aabresguard.bundle.AppBundleSigner;
 import com.bytedance.android.aabresguard.executors.BundleFileFilter;
 import com.bytedance.android.aabresguard.executors.BundleStringFilter;
 import com.bytedance.android.aabresguard.executors.DuplicatedResourcesMerger;
+import com.bytedance.android.aabresguard.executors.ClassObfuscator;
 import com.bytedance.android.aabresguard.executors.ResourcesObfuscator;
 import com.bytedance.android.aabresguard.model.xml.AabResGuardConfig;
+import com.bytedance.android.aabresguard.model.xml.ClassObfuscationConfig;
 import com.bytedance.android.aabresguard.parser.AabResGuardXmlParser;
 import com.bytedance.android.aabresguard.utils.FileOperation;
 import com.bytedance.android.aabresguard.utils.TimeClock;
@@ -50,6 +52,7 @@ public abstract class ObfuscateBundleCommand {
 
     private static final Flag<Boolean> MERGE_DUPLICATED_RES_FLAG = Flag.booleanFlag("merge-duplicated-res");
     private static final Flag<Boolean> OBFUSCATE_ASSETS_FLAG = Flag.booleanFlag("assets-obfuscate");
+    private static final Flag<Path> CLASS_MAPPING_FLAG = Flag.path("class-mapping");
 
     private static final Flag<Boolean> DISABLE_SIGN_FLAG = Flag.booleanFlag("disable-sign");
     private static final Flag<Path> STORE_FILE_FLAG = Flag.path("storeFile");
@@ -106,6 +109,15 @@ public abstract class ObfuscateBundleCommand {
                                 .setDescription("If set, file names under assets/ are obfuscated as well. " +
                                         "Assets are referenced by path at runtime, so every asset loaded via a " +
                                         "path literal must be added to the whitelist or the app will crash.")
+                                .build())
+                .addFlag(
+                        CommandHelp.FlagDescription.builder()
+                                .setFlagName(CLASS_MAPPING_FLAG.getName())
+                                .setExampleValue("class-mapping.txt")
+                                .setOptional(true)
+                                .setDescription("Path to a class-name mapping file. If it exists, existing " +
+                                        "mappings are reused; the final mapping is always written to " +
+                                        "class-mapping.txt in the output directory.")
                                 .build())
                 .addFlag(
                         CommandHelp.FlagDescription.builder()
@@ -170,6 +182,12 @@ public abstract class ObfuscateBundleCommand {
 
         MERGE_DUPLICATED_RES_FLAG.getValue(flags).ifPresent(builder::setMergeDuplicatedResources);
         OBFUSCATE_ASSETS_FLAG.getValue(flags).ifPresent(builder::setObfuscateAssets);
+        CLASS_MAPPING_FLAG.getValue(flags).ifPresent(builder::setClassMappingPath);
+
+        // class obfuscation config comes from the XML config file
+        if (config.getClassObfuscationConfig() != null) {
+            builder.setClassObfuscationConfig(config.getClassObfuscationConfig());
+        }
 
         DISABLE_SIGN_FLAG.getValue(flags).ifPresent(builder::setDisableSign);
         STORE_FILE_FLAG.getValue(flags).ifPresent(builder::setStoreFile);
@@ -234,6 +252,13 @@ public abstract class ObfuscateBundleCommand {
                     appBundle = obfuscator.obfuscate();
                 }
             }
+            // obfuscate class names (custom views, etc.)
+            if (getClassObfuscationConfig().isPresent() && getClassObfuscationConfig().get().isActive()) {
+                Path classMappingPath = getClassMappingPath().orElse(null);
+                try (ClassObfuscator obfuscator = new ClassObfuscator(getBundlePath(), appBundle, getClassObfuscationConfig().get(), getOutputPath().getParent(), classMappingPath)) {
+                    appBundle = obfuscator.obfuscate();
+                }
+            }
             // package bundle
             AppBundlePackager packager = new AppBundlePackager(appBundle, getOutputPath());
             packager.execute();
@@ -284,6 +309,10 @@ public abstract class ObfuscateBundleCommand {
 
     public abstract Optional<Boolean> getObfuscateAssets();
 
+    public abstract Optional<Path> getClassMappingPath();
+
+    public abstract Optional<ClassObfuscationConfig> getClassObfuscationConfig();
+
     public abstract Optional<Boolean> getDisableSign();
 
     public abstract Set<String> getWhiteList();
@@ -325,6 +354,10 @@ public abstract class ObfuscateBundleCommand {
 
         public abstract Builder setObfuscateAssets(Boolean obfuscateAssets);
 
+        public abstract Builder setClassMappingPath(Path classMappingPath);
+
+        public abstract Builder setClassObfuscationConfig(ClassObfuscationConfig classObfuscationConfig);
+
         public abstract Builder setDisableSign(Boolean disableSign);
 
         public abstract Builder setStoreFile(Path storeFile);
@@ -364,6 +397,16 @@ public abstract class ObfuscateBundleCommand {
                     throw CommandExecutionException.builder()
                             .withInternalMessage("Wrong properties: %s must end with '.txt'.",
                                     MAPPING_FLAG)
+                            .build();
+                }
+            }
+            if (command.getClassMappingPath().isPresent()) {
+                File file = command.getClassMappingPath().get().toFile();
+                checkFileExistsAndReadable(file.toPath());
+                if (!file.getName().endsWith(".txt")) {
+                    throw CommandExecutionException.builder()
+                            .withInternalMessage("Wrong properties: %s must end with '.txt'.",
+                                    CLASS_MAPPING_FLAG)
                             .build();
                 }
             }
