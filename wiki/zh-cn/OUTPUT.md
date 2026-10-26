@@ -42,6 +42,18 @@ class mapping:
 
 该文件可以作为 `--class-mapping`（命令行）或 `classObfuscation.mappingFile`（Gradle 插件）传入，以在增量构建中保持名称稳定。
 
+## universal.apk
+当 Gradle 插件配置 `buildUniversalApk = true`（默认值）时，`aabresguardBuildUniversalApk<Variant>` 任务会基于**混淆后**的 bundle 生成 universal APK，输出路径为：
+
+```
+build/outputs/apk/{variant}/{universalApkFileName}
+```
+
+- 默认文件名为 `universal.apk`，可通过 `universalApkFileName` 修改。
+- 使用对应 variant 的签名配置签名，可直接安装。
+- 由于基于混淆后的 bundle 生成，该 APK 中的资源名与资源路径同样是混淆后的。
+- `assemble<Variant>` 依赖该任务，因此常规的 `assembleRelease` 会同时产出混淆后的 AAB 与该 APK。设置 `buildUniversalApk = false` 可关闭。
+
 ## -duplicated.txt
 用于记录被去重的资源文件，示例如下：
 

@@ -42,6 +42,18 @@ class mapping:
 
 The file can be passed back as `--class-mapping` (CLI) or `classObfuscation.mappingFile` (Gradle plugin) to keep names stable across incremental builds.
 
+## universal.apk
+When the Gradle plugin has `buildUniversalApk = true` (the default), the `aabresguardBuildUniversalApk<Variant>` task builds a universal APK from the **obfuscated** bundle and writes it to:
+
+```
+build/outputs/apk/{variant}/{universalApkFileName}
+```
+
+- The default file name is `universal.apk`; change it with `universalApkFileName`.
+- It is signed with the variant's signing config, so it can be installed directly.
+- Because it is generated from the obfuscated bundle, the APK carries the obfuscated resource names and paths.
+- `assemble<Variant>` depends on this task, so a normal `assembleRelease` produces both the obfuscated AAB and this APK. Set `buildUniversalApk = false` to disable it.
+
 ## -duplicated.txt
 Used to record the deduplicated resource files, the example is shown below:
 

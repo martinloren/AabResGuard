@@ -63,6 +63,7 @@ aabresguard obfuscate-bundle --bundle=app.aab --output=obfuscated.aab --config=c
 Optional flags:
 - `--assets-obfuscate=true` — also obfuscate file names under `assets/`. **Use with care:** assets are referenced by path at runtime (`AssetManager.open(...)`, `Typeface.createFromAsset(...)`, `file:///android_asset/...` URLs, native code, JS), so every asset loaded via a path literal must be covered by the whitelist (e.g. `*/assets/fonts/*`) or the app will crash at runtime.
 - `--class-mapping=class-mapping.txt` — path to an existing class-name mapping file. If it exists, its mappings are reused; the final mapping is always written to `class-mapping.txt` in the output directory.
+- `--disable-sign=true` — do not sign the output bundle. Use it when the bundle is signed later (e.g. by Play or a separate signing step).
 
 Configuration file `config.xml`, whitelist support `regular expressions`
 ```xml
@@ -84,6 +85,12 @@ Configuration file `config.xml`, whitelist support `regular expressions`
     </filter>
 </resproguard>
 ```
+
+To install the obfuscated bundle on a device, build a universal APK from it with `bundletool`:
+```cmd
+bundletool build-apks --bundle=obfuscated.aab --output=universal.apks --mode=universal
+```
+The Gradle plugin automates this with `buildUniversalApk` (see **[Output File](OUTPUT.md)**).
 
 ## String filtering
 Specify a line-by-line split string list file to filter out value and translations if name is matched in the string resource type

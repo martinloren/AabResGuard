@@ -62,6 +62,7 @@ aabresguard obfuscate-bundle --bundle=app.aab --output=obfuscated.aab --config=c
 可选参数：
 - `--assets-obfuscate=true` — 同时混淆 `assets/` 下的文件名。**请谨慎使用：** assets 在运行时通过路径引用（`AssetManager.open(...)`、`Typeface.createFromAsset(...)`、`file:///android_asset/...`、native 代码、JS 等），所有通过路径字面量加载的 asset 都必须加入白名单（如 `*/assets/fonts/*`），否则应用会在运行时崩溃。
 - `--class-mapping=class-mapping.txt` — 已有的 class-name mapping 文件路径。如果存在，会复用其中的映射；最终映射始终会输出到输出目录的 `class-mapping.txt`。
+- `--disable-sign=true` — 不对输出的 bundle 签名。适用于稍后再签名的场景（例如由 Play 或单独的签名步骤签名）。
 
 配置文件 `config.xml`，白名单支持`正则表达式`
 ```xml
@@ -83,6 +84,12 @@ aabresguard obfuscate-bundle --bundle=app.aab --output=obfuscated.aab --config=c
     </filter>
 </resproguard>
 ```
+
+如需将混淆后的 bundle 安装到设备，可用 `bundletool` 基于它生成 universal APK：
+```cmd
+bundletool build-apks --bundle=obfuscated.aab --output=universal.apks --mode=universal
+```
+Gradle 插件通过 `buildUniversalApk` 自动完成该步骤（参见 **[输出文件](OUTPUT.md)**）。
 
 ## 文案过滤
 指定一个按行分割的字符串列表文件，过滤掉string资源类型中name匹配的文案及翻译

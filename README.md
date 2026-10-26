@@ -15,14 +15,15 @@
 ## Features
 > The tool of obfuscated aab resources.
 
-- **Obfuscate resource paths and names:** Both resource file paths (`res/layout/main.xml` → `res/a/b.xml`) and resource entry names (`string/app_name` → `string/a`) are obfuscated in the resource table, so the `resources.arsc` of APKs generated from the obfuscated bundle no longer contains readable resource names. Note: APKs must be generated from the **obfuscated** bundle (e.g. via `bundletool build-apks` or Play); APKs built directly with `assembleRelease` are never processed.
+- **Obfuscate resource paths and names:** Both resource file paths (`res/layout/main.xml` → `res/a/b.xml`) and resource entry names (`string/app_name` → `string/a`) are obfuscated in the resource table, so the `resources.arsc` of APKs generated from the obfuscated bundle no longer contains readable resource names. Note: APKs must be generated from the **obfuscated** bundle — via Play, `bundletool build-apks`, or the plugin's `buildUniversalApk` option (see [Output](wiki/en/OUTPUT.md)); APKs produced by any other Gradle task are never processed.
 - **Merge duplicated resources:** Consolidate duplicate resource files to reduce package size.
 - **Filter bundle files:** Support for filtering files in the `bundle` package. Currently only supports filtering in the `MATE-INFO/` and `lib/` paths.
 - **White list:** The resources in the whitelist are not to be obfuscated.
 - **Incremental obfuscation:** Input the `mapping` file to support incremental obfuscation.
 - **Remove string:** Input the unused file splits by lines to support remove strings.
 - **Opt-in assets obfuscation:** with `enableObfuscateAssets = true` (plugin) or `--assets-obfuscate=true` (CLI), file names under `assets/` are obfuscated too. **Off by default and use with care:** unlike resources, assets have no numeric-ID indirection — they are referenced at runtime by their path string (`AssetManager.open(...)`, `Typeface.createFromAsset(...)`, `WebView` `file:///android_asset/...`, native code, JS, ...), often inside third-party libraries. Every asset loaded via a path literal must be whitelisted (e.g. `*/assets/fonts/*`) or the app will crash at runtime.
-- **Class-name obfuscation for custom views:** Optionally rename selected fully-qualified class names (e.g. custom views) in the compiled DEX files and in binary XML layouts. Use `classObfuscation { ... }` (plugin) or the `<class-obfuscation>` config (CLI). A whitelist is mandatory for classes that must keep their names (Activities, Services, Application class, manifest-referenced classes, classes accessed via reflection, etc.).
+- **Class-name obfuscation for custom views:** Optionally rename selected fully-qualified class names (e.g. custom views) in the compiled DEX files (type references, `const-string` literals and annotation values) and in the binary XML resources (`res/**/*.xml`). Use `classObfuscation { ... }` (plugin) or the `<class-obfuscation>` config (CLI). A whitelist is mandatory for classes that must keep their names (Activities, Services, Application class, manifest-referenced classes, classes accessed via reflection, etc.).
+- **Universal APK output:** With `buildUniversalApk = true` (the default) the Gradle plugin also builds a universal APK from the **obfuscated** bundle, signed with the variant's signing config, and wires it into `assemble<Variant>`.
 - **???:** Looking ahead, there will be more feature support, welcome to submit PR & issue.
 
 ## [Data of size savings](wiki/en/DATA.md)
@@ -32,6 +33,8 @@ For more data details, please go to **[Data of size savings](wiki/en/DATA.md)**.
 
 ## Install
 Every release is published to the `mvn-repo` branch of this repository, so the compiled library can be used without building it from source.
+
+> Requirements: the Gradle plugin and the command line jar run on **JDK 21**. The plugin is built against **Gradle 9.5.0** and **AGP 9.3.1**.
 
 ### Gradle plugin
 Resolve the plugin from the repository published on the `mvn-repo` branch.
@@ -124,8 +127,11 @@ aabResGuard {
     ]
 
     enableFilterStrings = false // switch of filter strings
-    unusedStringPath = file("unused.txt").toPath() // strings will be filtered in this file
+    unusedStringPath = file("unused.txt").absolutePath // strings will be filtered in this file
     languageWhiteList = ["en", "zh"] // keep en,en-xx,zh,zh-xx etc. remove others.
+
+    buildUniversalApk = true // Build a universal APK from the obfuscated bundle (default: true)
+    universalApkFileName = "universal.apk" // File name of the generated universal APK
 
     classObfuscation {
         isActive = false // Set true to enable class-name obfuscation for custom views.
@@ -152,6 +158,15 @@ Get the obfuscated `bundle` file path by `gradle` .
 def aabResGuardTask = project.tasks.named("aabresguard${VARIANT_NAME}")
 Path bundlePath = aabResGuardTask.get().obfuscatedBundleFile.get().asFile.toPath()
 ```
+
+The plugin writes two files per variant:
+
+| Task | Output |
+| --- | --- |
+| `aabresguard<Variant>` | `build/outputs/bundle/<variant>/<obfuscatedBundleFileName>` |
+| `aabresguardBuildUniversalApk<Variant>` | `build/outputs/apk/<variant>/<universalApkFileName>` |
+
+`bundle<Variant>` depends on `aabresguard<Variant>`, and `assemble<Variant>` depends on `aabresguardBuildUniversalApk<Variant>` — so `./gradlew assembleRelease` also produces the universal APK. Set `buildUniversalApk = false` to skip it. The APK is built from the obfuscated bundle, signed with the variant's signing config, and `aapt2` is resolved from the newest `build-tools` of the Android SDK.
 
 ### [Whitelist](wiki/en/WHITELIST.md)
 The resources that can not be confused. Welcome PR your configs which is not included in [WHITELIST](wiki/en/WHITELIST.md)

@@ -6,6 +6,12 @@
 - Bugfix: a `class-mapping.txt` that maps two classes to the same name is detected, reported and repaired instead of failing the bundle.
 - Class obfuscation now fails with an explicit message when two classes would end up with the same name.
 
+## 0.1.2026
+- Added opt-in assets obfuscation (`enableObfuscateAssets` / `--assets-obfuscate`): file names under `assets/` are renamed, and whitelist rules now match asset paths too.
+- Added class-name obfuscation for DEX files and binary XML resources (`classObfuscation { ... }` / `<class-obfuscation>`), with a reusable `class-mapping.txt`.
+- Added universal APK output: the Gradle plugin builds `universal.apk` from the obfuscated bundle (`buildUniversalApk`, on by default) and hooks it into `assemble<Variant>`.
+- Updated the toolchain to JDK 21, Gradle 9.5 and AGP 9.3.1, with bundletool 1.18.3.
+
 ## 0.1.6（2020/4/21）
 - Compatible wit `AGP-3.5.0`
 - Bugfix: `Fix get AGP version failed issue`

@@ -6,6 +6,12 @@
 - Bugfix：如果 `class-mapping.txt` 将两个类映射到同一个名字，现在会被检测、告警并修复，而不是让整个 bundle 打包失败。
 - 当两个类最终会得到相同类名时，类名混淆会以明确的错误信息失败，而不是输出重复的类定义。
 
+## 0.1.2026
+- 新增可选的 assets 混淆（`enableObfuscateAssets` / `--assets-obfuscate`）：`assets/` 下的文件名会被重命名，白名单规则同时匹配 asset 路径。
+- 新增类名混淆，支持 DEX 与二进制 XML 资源（`classObfuscation { ... }` / `<class-obfuscation>`），并输出可复用的 `class-mapping.txt`。
+- 新增 universal APK 输出：Gradle 插件基于混淆后的 bundle 生成 `universal.apk`（`buildUniversalApk`，默认开启），并挂接到 `assemble<Variant>`。
+- 工具链升级到 JDK 21、Gradle 9.5、AGP 9.3.1 与 bundletool 1.18.3。
+
 ## 0.1.6（2020/4/21）
 - 适配 `AGP-3.5.0`
 - 修复获取 `AGP` 版本号失败的问题

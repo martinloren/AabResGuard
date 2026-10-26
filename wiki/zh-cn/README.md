@@ -20,7 +20,8 @@
 - **增量混淆：** 输入 `mapping` 文件，支持增量混淆。
 - **文案删除：** 输入按行分割的字符串文件，移除文案及翻译。
 - **可选的 assets 混淆：** 通过 `enableObfuscateAssets = true`（插件）或 `--assets-obfuscate=true`（命令行）开启后，`assets/` 下的文件名也会被混淆。**默认关闭，请谨慎使用：** 与资源不同，assets 没有数字 ID 间接寻址——运行时通过路径字符串引用（`AssetManager.open(...)`、`Typeface.createFromAsset(...)`、WebView 的 `file:///android_asset/...`、native 代码、JS 等），且常常位于第三方库内部。所有通过路径字面量加载的 asset 都必须加入白名单（如 `*/assets/fonts/*`），否则应用会在运行时崩溃。
-- **类名混淆（自定义 View）：** 可选地对指定完整类名（例如自定义 View）在编译后的 DEX 与二进制 XML 布局中进行重命名。通过 `classObfuscation { ... }`（插件）或 `<class-obfuscation>`（命令行）配置。必须将运行时依赖原名的类（Activity、Service、Application、manifest 声明的类、反射使用的类等）加入白名单。
+- **类名混淆（自定义 View）：** 可选地对指定完整类名（例如自定义 View）在编译后的 DEX（类型引用、`const-string` 字面量与注解值）以及二进制 XML 资源（`res/**/*.xml`）中进行重命名。通过 `classObfuscation { ... }`（插件）或 `<class-obfuscation>`（命令行）配置。必须将运行时依赖原名的类（Activity、Service、Application、manifest 声明的类、反射使用的类等）加入白名单。
+- **Universal APK 输出：** 当 `buildUniversalApk = true`（默认值）时，Gradle 插件还会基于**混淆后**的 bundle 生成 universal APK，使用对应 variant 的签名配置签名，并挂接到 `assemble<Variant>` 上。
 - **？？？：** 展望未来，会有更多的特性支持，欢迎提交 PR & issue。
 
 ## [数据收益](DATA.md)
@@ -29,6 +30,8 @@
 
 ## 安装
 每个版本都会发布到本仓库的 `mvn-repo` 分支，因此无需从源码构建即可直接使用编译好的库。
+
+> 环境要求：Gradle 插件与命令行 jar 均需运行在 **JDK 21** 上。插件基于 **Gradle 9.5.0** 与 **AGP 9.3.1** 构建。
 
 ### Gradle plugin
 从 `mvn-repo` 分支提供的仓库中解析插件。
@@ -105,8 +108,11 @@ aabResGuard {
         "META-INF/*"
     ]
     enableFilterStrings = false // 过滤文案
-    unusedStringPath = file("unused.txt").toPath() // 过滤文案列表路径 默认在mapping同目录查找
+    unusedStringPath = file("unused.txt").absolutePath // 过滤文案列表路径 默认在mapping同目录查找
     languageWhiteList = ["en", "zh"] // 保留en,en-xx,zh,zh-xx等语言，其余均删除
+
+    buildUniversalApk = true // 基于混淆后的 bundle 生成 universal APK（默认开启）
+    universalApkFileName = "universal.apk" // 生成的 universal APK 文件名
 
     classObfuscation {
         isActive = false // 设为 true 开启自定义 View 等类名混淆
@@ -133,6 +139,15 @@ aabResGuard {
 def aabResGuardTask = project.tasks.named("aabresguard${VARIANT_NAME}")
 Path bundlePath = aabResGuardTask.get().obfuscatedBundleFile.get().asFile.toPath()
 ```
+
+每个 variant 会输出两个文件：
+
+| 任务 | 输出 |
+| --- | --- |
+| `aabresguard<Variant>` | `build/outputs/bundle/<variant>/<obfuscatedBundleFileName>` |
+| `aabresguardBuildUniversalApk<Variant>` | `build/outputs/apk/<variant>/<universalApkFileName>` |
+
+`bundle<Variant>` 依赖 `aabresguard<Variant>`，`assemble<Variant>` 依赖 `aabresguardBuildUniversalApk<Variant>`，因此 `./gradlew assembleRelease` 会同时产出 universal APK。设置 `buildUniversalApk = false` 可关闭该步骤。该 APK 基于混淆后的 bundle 构建，使用对应 variant 的签名配置签名，`aapt2` 取自 Android SDK 中最新的 `build-tools`。
 
 ### [白名单](../en/WHITELIST.md)
 不需要混淆的资源. 如果[白名单](../en/WHITELIST.md)中没有包含你的配置，欢迎提交 PR.
