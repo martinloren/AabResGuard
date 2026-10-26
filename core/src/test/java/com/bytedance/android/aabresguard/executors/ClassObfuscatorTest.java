@@ -75,6 +75,60 @@ public class ClassObfuscatorTest extends BaseTest {
         assertThat(obfuscatedShortNames).containsExactly("a", "b", "c");
     }
 
+    @Test
+    public void test_reusedMappingDoesNotCollideWithClassesAddedLater() throws Exception {
+        File rawAabFile = loadResourceFile("demo/demo.aab");
+        File outputFile = new File(getTempDirPath().toFile(), "obfuscated-incremental.aab");
+
+        // Mapping from an older build where Model3 already owns the short name "a" but
+        // Model1 did not exist yet. Model1 is processed first, so it must not be given
+        // "a" again: that duplicated class name aborted the DEX writer.
+        Path inputMapping = getTempDirPath().resolve("input-class-mapping.txt");
+        Files.write(inputMapping, java.util.Arrays.asList(
+                "class mapping:",
+                "\tcom.ss.android.ugc.model.Model2 -> com.ss.android.ugc.model.b",
+                "\tcom.ss.android.ugc.model.Model3 -> com.ss.android.ugc.model.a"
+        ), java.nio.charset.StandardCharsets.UTF_8);
+
+        ObfuscateBundleCommand.fromFlags(
+                new com.android.tools.build.bundletool.flags.FlagParser().parse(
+                        "--bundle=" + rawAabFile.getAbsolutePath(),
+                        "--output=" + outputFile.getAbsolutePath(),
+                        "--config=" + loadResourcePath("demo/config-class-obfuscation.xml"),
+                        "--class-mapping=" + inputMapping.toAbsolutePath(),
+                        "--disable-sign=true"
+                )
+        ).execute();
+        assertThat(outputFile.exists()).isTrue();
+
+        Path mappingFile = outputFile.toPath().getParent().resolve(ClassObfuscator.CLASS_MAPPING_NAME);
+        String mapping = new String(Files.readAllBytes(mappingFile));
+        assertThat(mapping).contains("com.ss.android.ugc.model.Model1 -> com.ss.android.ugc.model.c");
+        assertThat(mapping).contains("com.ss.android.ugc.model.Model2 -> com.ss.android.ugc.model.b");
+        assertThat(mapping).contains("com.ss.android.ugc.model.Model3 -> com.ss.android.ugc.model.a");
+        assertThat(modelClassSimpleNames(outputFile)).containsExactly("a", "b", "c");
+    }
+
+    private Set<String> modelClassSimpleNames(File aabFile) throws IOException {
+        AppBundle appBundle = new AppBundleAnalyzer(aabFile.toPath()).analyze();
+        Set<String> simpleNames = new HashSet<>();
+        for (BundleModule module : appBundle.getModules().values()) {
+            for (com.android.tools.build.bundletool.model.ModuleEntry entry : module.getEntries()) {
+                String path = entry.getPath().toString();
+                if (!path.startsWith("dex/") || !path.endsWith(".dex")) {
+                    continue;
+                }
+                for (org.jf.dexlib2.iface.ClassDef classDef : readDex(aabFile.toPath(), module, entry).getClasses()) {
+                    String dotted = classDef.getType().substring(1, classDef.getType().length() - 1).replace('/', '.');
+                    if (dotted.startsWith("com.ss.android.ugc.model.")) {
+                        simpleNames.add(dotted.substring(dotted.lastIndexOf('.') + 1));
+                    }
+                }
+            }
+        }
+        return simpleNames;
+    }
+
     private DexBackedDexFile readDex(Path aabPath, BundleModule module,
                                      com.android.tools.build.bundletool.model.ModuleEntry entry) throws IOException {
         String zipPath = module.getName().getName() + "/" + entry.getPath().toString();

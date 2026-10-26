@@ -150,6 +150,7 @@ public class ClassObfuscator implements Closeable {
         // First pass: collect every class definition and group simple names by package.
         Map<String, Set<String>> existingSimpleNamesByPackage = new HashMap<>();
         List<ClassRef> toObfuscate = new ArrayList<>();
+        Set<String> definedClasses = new HashSet<>();
         for (BundleModule module : rawAppBundle.getModules().values()) {
             for (ModuleEntry entry : module.getEntries()) {
                 String path = entry.getPath().toString();
@@ -161,6 +162,7 @@ public class ClassObfuscator implements Closeable {
                 for (ClassDef classDef : dexFile.getClasses()) {
                     String dotted = descriptorToDotted(classDef.getType());
                     String packageName = packageOf(dotted);
+                    definedClasses.add(dotted);
                     existingSimpleNamesByPackage
                             .computeIfAbsent(packageName, k -> new HashSet<>())
                             .add(simpleNameOf(dotted));
@@ -171,18 +173,19 @@ public class ClassObfuscator implements Closeable {
             }
         }
 
-        // Second pass: assign new short names. Classes already present in the input
-        // mapping are kept as-is, and their new simple name is reserved.
+        // Reserve every simple name the input mapping already handed out before a single
+        // new name is generated. Reserving lazily, only for the classes the loop below
+        // happens to reach, let a class added after the mapping was written take a name
+        // that an already mapped class still owned; the DEX writer then aborted with
+        // "Class <name> has already been interned".
+        reserveMappedSimpleNames(existingSimpleNamesByPackage, definedClasses);
+
+        // Second pass: assign new short names, skipping every name already in use.
         for (ClassRef ref : toObfuscate) {
+            Set<String> used = usedNamesFor(ref.packageName, existingSimpleNamesByPackage);
             if (classMapping.containsKey(ref.dottedName)) {
-                String newDotted = classMapping.get(ref.dottedName);
-                usedSimpleNames
-                        .computeIfAbsent(ref.packageName, k -> new HashSet<>(existingSimpleNamesByPackage.getOrDefault(ref.packageName, Collections.emptySet())))
-                        .add(simpleNameOf(newDotted));
                 continue;
             }
-            Set<String> used = usedSimpleNames
-                    .computeIfAbsent(ref.packageName, k -> new HashSet<>(existingSimpleNamesByPackage.getOrDefault(ref.packageName, Collections.emptySet())));
             ResGuardStringBuilder builder = nameBuilders
                     .computeIfAbsent(ref.packageName, k -> {
                         ResGuardStringBuilder b = new ResGuardStringBuilder();
@@ -194,6 +197,71 @@ public class ClassObfuscator implements Closeable {
             String newDotted = ref.packageName.isEmpty() ? newSimpleName : ref.packageName + "." + newSimpleName;
             classMapping.put(ref.dottedName, newDotted);
         }
+        verifyUniqueTargetNames(definedClasses);
+    }
+
+    /**
+     * Marks the target simple names of the input mapping as used, so generated names can
+     * never clash with a class that was renamed by a previous run.
+     */
+    private void reserveMappedSimpleNames(Map<String, Set<String>> existingSimpleNamesByPackage,
+                                          Set<String> definedClasses) {
+        dropDuplicateTargetNames(definedClasses);
+        for (Map.Entry<String, String> entry : classMapping.entrySet()) {
+            String targetSimpleName = simpleNameOf(entry.getValue());
+            usedNamesFor(packageOf(entry.getValue()), existingSimpleNamesByPackage).add(targetSimpleName);
+            usedNamesFor(packageOf(entry.getKey()), existingSimpleNamesByPackage).add(targetSimpleName);
+        }
+    }
+
+    /**
+     * A hand-edited or previously mis-generated mapping can map two classes to the same
+     * target. Keep the first claim so it stays stable and let the remaining classes be
+     * renamed again, otherwise the bundle would contain a duplicated class definition.
+     */
+    private void dropDuplicateTargetNames(Set<String> definedClasses) {
+        Map<String, List<String>> sourcesByTarget = new TreeMap<>();
+        for (Map.Entry<String, String> entry : classMapping.entrySet()) {
+            if (definedClasses.contains(entry.getKey())) {
+                sourcesByTarget.computeIfAbsent(entry.getValue(), k -> new ArrayList<>()).add(entry.getKey());
+            }
+        }
+        for (Map.Entry<String, List<String>> entry : sourcesByTarget.entrySet()) {
+            List<String> sources = entry.getValue();
+            if (sources.size() < 2) {
+                continue;
+            }
+            Collections.sort(sources);
+            for (String droppedSource : sources.subList(1, sources.size())) {
+                classMapping.remove(droppedSource);
+                logger.warning(String.format("Drop duplicate class mapping: %s -> %s (already used by %s)",
+                        droppedSource, entry.getKey(), sources.get(0)));
+            }
+        }
+    }
+
+    /**
+     * Fails with an actionable message when two classes would end up with the same name.
+     */
+    private void verifyUniqueTargetNames(Set<String> definedClasses) {
+        Map<String, String> sourcesByTarget = new HashMap<>();
+        for (Map.Entry<String, String> entry : classMapping.entrySet()) {
+            if (!definedClasses.contains(entry.getKey())) {
+                continue;
+            }
+            String previousSource = sourcesByTarget.put(entry.getValue(), entry.getKey());
+            if (previousSource != null) {
+                throw new IllegalStateException(String.format(
+                        "Class obfuscation assigned the same name '%s' to both %s and %s",
+                        entry.getValue(), previousSource, entry.getKey()));
+            }
+        }
+    }
+
+    private Set<String> usedNamesFor(String packageName,
+                                     Map<String, Set<String>> existingSimpleNamesByPackage) {
+        return usedSimpleNames.computeIfAbsent(packageName, k ->
+                new HashSet<>(existingSimpleNamesByPackage.getOrDefault(packageName, Collections.emptySet())));
     }
 
     private boolean shouldObfuscate(String dottedName) {
