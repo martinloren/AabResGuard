@@ -1,0 +1,87 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.bytedance.android",
+    "module": "aabresguard-plugin",
+    "version": "0.1.2027",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "aabresguard-plugin-0.1.2027.jar",
+          "url": "aabresguard-plugin-0.1.2027.jar",
+          "size": 29149,
+          "sha512": "db7cec5e5dad049cc96019a2f994a41120fb3cde8c1ddd5e6564599095a2ea584e38a667849cd6ea5bc964d25cf18e6a8d77bc49e481e0e696cf4b787d70401f",
+          "sha256": "39996ec35b0ae562a617057f864ec53448e885521ad3a9ef96919ee713e907f8",
+          "sha1": "771b899b46e434d579594c37e9948e6174a14ba6",
+          "md5": "32c6a2ef75903f6fcb870aff72f9451b"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.3.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-gradle-plugin",
+          "version": {
+            "requires": "2.3.10"
+          }
+        },
+        {
+          "group": "com.bytedance.android",
+          "module": "aabresguard-core",
+          "version": {
+            "requires": "0.1.2027"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "aabresguard-plugin-0.1.2027.jar",
+          "url": "aabresguard-plugin-0.1.2027.jar",
+          "size": 29149,
+          "sha512": "db7cec5e5dad049cc96019a2f994a41120fb3cde8c1ddd5e6564599095a2ea584e38a667849cd6ea5bc964d25cf18e6a8d77bc49e481e0e696cf4b787d70401f",
+          "sha256": "39996ec35b0ae562a617057f864ec53448e885521ad3a9ef96919ee713e907f8",
+          "sha1": "771b899b46e434d579594c37e9948e6174a14ba6",
+          "md5": "32c6a2ef75903f6fcb870aff72f9451b"
+        }
+      ]
+    }
+  ]
+}
