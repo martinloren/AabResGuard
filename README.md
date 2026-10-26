@@ -4,7 +4,7 @@
   <p align="center" style="font-size: 0.3em">The tool of obfuscated aab resources</p>
 </h1>
 
-[Download V.0.1.10](https://github.com/martinloren/mvn-repo/raw/main/AabResGuard_0.1.10.zip)
+[Download V.0.1.2027](https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo/com/bytedance/android/aabresguard-core/0.1.2027/aabresguard-core-0.1.2027.jar)
 
 [![License](https://img.shields.io/badge/license-Apache2.0-brightgreen)](LICENSE) [![Bundletool](https://img.shields.io/badge/Dependency-Bundletool/1.18.3-blue)](https://github.com/google/bundletool)
 
@@ -30,6 +30,41 @@
 There is no feedback on related resource issues.
 For more data details, please go to **[Data of size savings](wiki/en/DATA.md)**.
 
+## Install
+Every release is published to the `mvn-repo` branch of this repository, so the compiled library can be used without building it from source.
+
+### Gradle plugin
+Resolve the plugin from the repository published on the `mvn-repo` branch.
+```gradle
+buildscript {
+  repositories {
+    mavenCentral()
+    google()
+    maven { url 'https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo' }
+  }
+  dependencies {
+    classpath "com.bytedance.android:aabresguard-plugin:0.1.2027"
+  }
+}
+```
+
+### Library dependency
+`aabresguard-core` is a self-contained jar (all runtime dependencies are shaded and relocated), so it adds no transitive dependencies to your build.
+```gradle
+repositories {
+  maven { url 'https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo' }
+}
+dependencies {
+  implementation "com.bytedance.android:aabresguard-core:0.1.2027"
+}
+```
+
+### Command line jar
+[Download aabresguard-core-0.1.2027.jar](https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo/com/bytedance/android/aabresguard-core/0.1.2027/aabresguard-core-0.1.2027.jar) and run it with the JDK 21 runtime:
+```cmd
+java -jar aabresguard-core-0.1.2027.jar help
+```
+
 ## Quick start
 - **Command tool:** Support command line.
 - **Gradle plugin:** Support for `gradle plugin`, using the original packaging command to execute obfuscation.
@@ -45,7 +80,7 @@ buildscript {
     maven { url 'https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo' }
    }
   dependencies {
-    classpath "com.bytedance.android:aabresguard-plugin:0.1.10"
+    classpath "com.bytedance.android:aabresguard-plugin:0.1.2027"
   }
 }
 ```
@@ -127,7 +162,7 @@ The resources that can not be confused. Welcome PR your configs which is not inc
 ### [Output](wiki/en/OUTPUT.md)
 After the packaging is completed, the obfuscated file and the log files will be output. More details, please go to **[Output File](wiki/en/OUTPUT.md)**.
 - **resources-mapping.txt:** Resource obfuscation mapping, which can be used as the next obfuscation input to achieve incremental obfuscate.
-- **class-mapping.txt:** Class-name obfuscation mapping (only when class obfuscation is enabled). Can be supplied as `classObfuscation.mappingFile` to keep names stable across builds.
+- **class-mapping.txt:** Class-name obfuscation mapping (only when class obfuscation is enabled). Written to the output directory on every run and reused automatically as the input of the next run in the same directory, so class names stay stable across builds. Supplying `classObfuscation.mappingFile` points the input at another file. Names already present in the input mapping are always reserved before new names are generated, so adding or removing classes never produces a duplicate class name (which would abort the DEX writer with `Class <name> has already been interned`).
 - **aab:** Optimized aab file.
 - **-duplicated.txt:** duplicated file logging.
 

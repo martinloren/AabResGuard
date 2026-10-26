@@ -4,6 +4,17 @@
 
 > **AabResGuard** provides a jar file that can run resource obfuscation by command line.
 
+## Install
+The command line tool is the self-contained `aabresguard-core` jar published on the `mvn-repo` branch of this repository.
+
+- Download [aabresguard-core-0.1.2027.jar](https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo/com/bytedance/android/aabresguard-core/0.1.2027/aabresguard-core-0.1.2027.jar), or let Gradle/Maven resolve `com.bytedance.android:aabresguard-core:0.1.2027` from `https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo`.
+- Run it with the JDK 21 runtime:
+```cmd
+java -jar aabresguard-core-0.1.2027.jar help
+```
+
+The `aabresguard <command>` examples below are shorthand for `java -jar aabresguard-core-0.1.2027.jar <command>`.
+
 ## Merge duplicated resources
 The duplicate files will be merged according to the file `md5` value, only one file will be retained, and then the values in the original resource path index table will be redirected to reduce the volume of the package.
 ```cmd

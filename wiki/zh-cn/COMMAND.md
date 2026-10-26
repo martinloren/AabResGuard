@@ -4,6 +4,17 @@
 
 > **AabResGuard** 提供了 jar 包，可以直接通过命令行来运行资源混淆。
 
+## 安装
+命令行工具是本仓库 `mvn-repo` 分支上发布的自包含 `aabresguard-core` jar。
+
+- 下载 [aabresguard-core-0.1.2027.jar](https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo/com/bytedance/android/aabresguard-core/0.1.2027/aabresguard-core-0.1.2027.jar)，或让 Gradle/Maven 从 `https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo` 解析 `com.bytedance.android:aabresguard-core:0.1.2027`。
+- 使用 JDK 21 运行：
+```cmd
+java -jar aabresguard-core-0.1.2027.jar help
+```
+
+下文中的 `aabresguard <command>` 示例均等价于 `java -jar aabresguard-core-0.1.2027.jar <command>`。
+
 ## 资源去重
 根据文件 `md5` 值对重复的文件进行合并，只保留一份，然后重定向原本的资源路径索引表中的值，以达到缩减包体积的目的。
 ```cmd

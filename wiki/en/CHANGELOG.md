@@ -1,6 +1,11 @@
 **[English](CHANGELOG.md)** | [简体中文](../zh-cn/CHANGELOG.md)
 
 # Change log
+## 0.1.2027
+- Bugfix: `classObfuscation` no longer aborts with `Class <name> has already been interned` when classes are added or removed between builds. Names already handed out by the input `class-mapping.txt` are now reserved before any new name is generated; previously they were reserved only when the generator reached the mapped class, so a newly added class could take a name that another mapped class still owned.
+- Bugfix: a `class-mapping.txt` that maps two classes to the same name is detected, reported and repaired instead of failing the bundle.
+- Class obfuscation now fails with an explicit message when two classes would end up with the same name.
+
 ## 0.1.6（2020/4/21）
 - Compatible wit `AGP-3.5.0`
 - Bugfix: `Fix get AGP version failed issue`

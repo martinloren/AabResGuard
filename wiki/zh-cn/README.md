@@ -27,6 +27,41 @@
 **AabResGuard** 是抖音Android团队完成的资源混淆工具，目前已经在 **Tiktok、Vigo** 等多个产品上线多月，目前无相关资源问题的反馈。
 具体的数据详细信息请移步 **[数据收益](DATA.md)** 。
 
+## 安装
+每个版本都会发布到本仓库的 `mvn-repo` 分支，因此无需从源码构建即可直接使用编译好的库。
+
+### Gradle plugin
+从 `mvn-repo` 分支提供的仓库中解析插件。
+```gradle
+buildscript {
+  repositories {
+    mavenCentral()
+    google()
+    maven { url 'https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo' }
+   }
+  dependencies {
+    classpath "com.bytedance.android:aabresguard-plugin:0.1.2027"
+  }
+}
+```
+
+### 库依赖
+`aabresguard-core` 是一个自包含的 jar（所有运行时依赖都已 shade 并 relocate），不会给构建引入额外的传递依赖。
+```gradle
+repositories {
+  maven { url 'https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo' }
+}
+dependencies {
+  implementation "com.bytedance.android:aabresguard-core:0.1.2027"
+}
+```
+
+### 命令行 jar
+[下载 aabresguard-core-0.1.2027.jar](https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo/com/bytedance/android/aabresguard-core/0.1.2027/aabresguard-core-0.1.2027.jar)，使用 JDK 21 运行：
+```cmd
+java -jar aabresguard-core-0.1.2027.jar help
+```
+
 ## 快速开始
 - **命令行工具：** 支持命令行一键输入输出。
 - **Gradle plugin：** 支持 `gradle plugin`，使用原始打包命令执行混淆。
@@ -38,9 +73,10 @@ buildscript {
   repositories {
     mavenCentral()
     google()
+    maven { url 'https://raw.githubusercontent.com/martinloren/AabResGuard/mvn-repo' }
    }
   dependencies {
-    classpath "com.bytedance.android:aabresguard-plugin:0.1.0"
+    classpath "com.bytedance.android:aabresguard-plugin:0.1.2027"
   }
 }
 ```
